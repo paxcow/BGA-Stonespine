@@ -11,6 +11,7 @@ jobs:
     - name: 📂 Sync files
       uses: SamKirkland/FTP-Deploy-Action@v4.3.5
       with:
-        server: sftp://1.studio.boardgamearena.com/stonespinearchitects/
+        server: sftp://1.studio.boardgamearena.com
+        server-dir: stonespinearchitects/
         username: paxcow
         password: test
