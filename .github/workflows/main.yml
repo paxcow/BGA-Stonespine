@@ -13,4 +13,4 @@ jobs:
       with:
         server: sftp://1.studio.boardgamearena.com/stonespinearchitects/
         username: paxcow
-        password: ${{ secrets.MY_SECRET_BGA_PASSWORD }}
+        password: test
