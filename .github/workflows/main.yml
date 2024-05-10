@@ -1,18 +1,33 @@
-on: push
-name: publish to BGA
+name: Deploy via SFTP
+on:
+  push:
+    branches:
+      - main
 jobs:
-  web-deploy:
-    name: 🎉 Deploy
+  deploy:
+    name: Deploy
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     steps:
-    - name: 🚚 Get latest code
-      uses: actions/checkout@v4
-    
-    - name: 📂 Sync files
-      uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-      with:
-        server: sftp://1.studio.boardgamearena.com
-        port: 22
-        server-dir: stonespinearchitects/
-        username: paxcow
-        password: test
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Deploy files via SFTP
+        uses: pressidium/lftp-mirror-action@v1
+        with:
+          # SFTP credentials
+          host: 1.studio.boardgamearena.com
+          port: 22
+          user: paxcow
+          pass: ${{ secrets.MY_BGA_SECRET_PASSWORD }}
+          # lftp settings
+          onlyNewer: true
+          settings: 'sftp:auto-confirm=yes'
+          # Mirror command options
+          localDir: '.'
+          remoteDir: '/stonespinearchitects'
+          reverse: true
+          ignoreFile: '.lftp_ignore'
+          options: '--verbose'
