@@ -1,0 +1,706 @@
+/**
+ *------
+ * BGA framework: Gregory Isabelli & Emmanuel Colin & BoardGameArena
+ * Stonespine Architects implementation : © Andrea "Paxcow" Vitagliano <andrea.vitagliano@gmail.com>
+ *
+ * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
+ * See http://en.boardgamearena.com/#!doc/Studio for more information.
+ * -----
+ *
+ * stonespinearchitects.css
+ *
+ * StonespineArchitects stylesheet
+ *
+ */
+
+/*
+    This is the CSS stylesheet of your game User Interface.
+    
+    Styles defined on this file will be applied to the HTML elements you define in your
+    HTML template (stonespinearchitects_stonespinearchitects.tpl), and to HTML elements you create dynamically
+    (in stonespinearchitects.js).
+    
+    Usually, you are using CSS to:
+    
+    1°) define the overall layout of your game
+        (ex: place the board on the top left, place player's hand beside, place the deck on the right, ...).
+
+    2°) create your CSS-sprites:
+        All images of your games should be gathered into a small number of image files. Then, using
+        background-image and background-position CSS properties, you create HTML blocks that can 
+        display these images correctly (see example below).
+    
+    3°) ... anything else:
+        It is really easy to add and remove CSS classes dynamically from your Javascript with
+        dojo.addClass and dojo.removeClass. It is also easy to check if an element has a class
+        (dojo.hasClass) or to get all elements with a specific class (dojo.query). This is why,
+        very often, using CSS classes for the logic of your user interface allow you to do complex
+        thing easily.
+        
+        
+     Note: on the production platform, this file will be compressed and comments will be removed.
+           Consequently, don't hesitate to put as many comments as necessary.
+*/
+
+/* Note: you must not use any @import directive */
+
+/********* You can start writing your CSS below this line: **********/
+
+/*
+    Example of CSS sprites (a black token and a white token, 20x20px each, embedded in the same "tokens.png" 40x20px image):
+
+    .white_token {
+        background-image: url('img/tokens.png');
+        background-position: 0px 0px;
+    }
+    .black_token {
+        background-image: url('img/tokens.png');
+        background-position: -20px 0px;
+    }
+    .token {
+        width: 20px;
+        height: 20px;
+        background-repeat: none;
+    }
+*/
+
+@import url(modules/BGA-cards/bga-cards.css);
+
+/*********************************/
+/* GENERAL VARIABLES AND WRAPPER */
+/*********************************/
+
+body {
+  background: url(img/blueprint_background.png);
+}
+
+div {
+  --zoom_factor: 1;
+
+  --card_width: calc(126px * var(--zoom_factor));
+  --card_height: calc(176px * var(--zoom_factor));
+
+  --token_circle_size: calc(34px * var(--zoom_factor));
+  --token_square_size: calc(40px * var(--zoom_factor));
+  --token_oval_sizeX: calc(34px * var(--zoom_factor));
+  --token_oval_sizeY: calc(50px * var(--zoom_factor));
+
+  --marker_size : calc(38px * var(--zoom_factor));
+
+  --board_width: calc(496px * var(--zoom_factor));
+  --board_height: calc(328px * var(--zoom_factor));
+  --placement_transparency: 0.5;
+}
+
+.wrapper {
+  display: inline-flex;
+  flex-flow: row wrap;
+  border-color: red;
+  gap: 5px;
+}
+
+.wrapper.column {
+  flex-flow: column wrap;
+}
+
+.wrapper.nowrap {
+  flex-wrap: nowrap;
+}
+@media (max-width: 950px) {
+  #player_area {
+    flex-wrap: wrap;
+  }
+}
+
+/*********************************/
+/*        GAME AREAS             */
+/*********************************/
+
+
+.player_area,
+.player_hand_chambers,
+.player_hand_challenges,
+.market_wrapper,
+.challenge_wrapper {
+  align-items: flex-start;
+}
+
+#market_wrapper{
+  max-width: calc(var(--card_width)*2.2);
+}
+
+#challenge_wrapper{
+  max-width: calc(var(--card_height)*2.2);
+}
+
+#score_board {
+  flex-wrap: nowrap;
+  justify-content: center;
+}
+
+#board_wrapper {
+  justify-content: center;
+}
+
+.dungeon_wrapper {
+  align-items: center;
+  margin: 10px 15px 50px ;
+}
+#board {
+  width: var(--board_width);
+  height: var(--board_height);
+  background: url(img/resized_board.png);
+  background-size: contain;
+  position: relative;
+}
+
+#token_wrapper {
+  flex: 1;
+  justify-content: space-evenly;
+  align-items: stretch;
+  margin: 0px 5px;
+}
+#chamber_wrapper {
+  justify-content: center;
+  margin-left: 3px;
+}
+
+.token_pile {
+  flex: 1 1 auto;
+  width: var(--card_width);
+  height: var(--card_height);
+  position: relative;
+}
+
+/*********************************/
+/*             CARDS             */
+/*********************************/
+
+.bga-cards_selected-card {
+  box-shadow: 0 0 5px 3px blueviolet;
+}
+
+/*Chambers*/
+.chamber-card {
+  border-radius: 8px;
+  position: relative;
+  height: var(--card_height);
+  width: var(--card_width);
+}
+
+.chamber-front {
+  border-radius: 8px;
+  background-image: url(img/chamber_sprite-small.png);
+  background-size: calc(var(--card_width) * 10) calc(var(--card_height) * 11);
+}
+
+.chamber-back {
+  background-image: url(img/chamber_sprite-small.png);
+  background-size: calc(var(--card_width) * 10) calc(var(--card_height) * 11);
+  background-position: 0% 100%;
+}
+
+/*Blueprint*/
+.blueprint-card {
+  border-radius: 8px;
+  position: relative;
+  height: var(--card_height);
+  width: var(--card_width);
+}
+
+.blueprint-front {
+  border-radius: 8px;
+  background-image: url(img/blueprint_sprite-small.png);
+  background-size: calc(var(--card_width) * 9) var(--card_height);
+}
+
+.blueprint-back {
+  background-image: url(img/blueprint_sprite-small.png);
+  background-size: calc(var(--card_width) * 9) var(--card_height);
+  background-position: 0% 100%;
+}
+
+/*Challenges*/
+.challenge-card {
+  border-radius: 8px;
+  position: relative;
+  height: var(--card_width);
+  width: var(--card_height); /*portrait*/
+  margin:0px 3px;
+}
+
+.challenge-front {
+  border-radius: 8px;
+  background-image: url(img/challenge_sprite-small.png);
+  background-size: calc(var(--card_height) * 10) calc(var(--card_width) * 4);
+}
+
+.challenge-back {
+  border-radius: 8px;
+  background-image: url(img/challenge_sprite-small.png);
+  background-size: calc(var(--card_height) * 10) calc(var(--card_width) * 4);
+  background-position: 0% 100%;
+}
+
+/*market*/
+.market-card {
+  border-radius: 8px;
+  position: relative;
+  height: var(--card_height);
+  width: var(--card_width); 
+  margin: 0px 3px;
+}
+
+.market-front {
+  border-radius: 8px;
+  background-image: url(img/market_sprite-small.png);
+  background-size: calc(var(--card_width) * 9) calc(var(--card_height) * 3);
+}
+
+.market-back {
+  border-radius: 8px;
+  background-image: url(img/market_sprite-small.png);
+  background-size: calc(var(--card_width) * 9) calc(var(--card_height) * 3);
+  background-position: 0% 100%;
+}
+
+/*Goal*/
+
+
+.goal-card {
+  border-radius: 8px;
+  border: 1px solid grey;
+  background: url(img/goal_sprite-small.png);
+  background-size: calc(var(--card_height)*8) var(--card_width);
+  position: relative;
+  height: var(--card_width);
+  width: var(--card_height);
+  box-shadow: 2px 2px 2px 2px rgba(20, 20, 20, .75);
+}
+
+/*********************************/
+/*      CHAMBER CARDS AREAS      */
+/*********************************/
+
+.chamber_quadrant {
+  width: 29.9%;
+  height: 21.4%;
+  position: absolute;
+}
+#quadrant1 {
+  top: 10.2%;
+  left: 54%;
+}
+#quadrant2 {
+  top: 10.2%;
+  left: 12.7%;
+}
+#quadrant3 {
+  top: 38.6%;
+  left: 12.7%;
+}
+#quadrant4 {
+  top: 38.6%;
+  left: 54%;
+}
+.chamber_type {
+  position: absolute;
+  width: 13.8%;
+  height: 9.9%;
+  top: 2.8%;
+  left: 4%;
+}
+.chamber_income {
+  position: absolute;
+  width: 13.7%;
+  height: 9.8%;
+  top: 81.1%;
+  left: 42.6%;
+}
+.chamber_rune {
+  position: absolute;
+  width: 8.2%;
+  height: 5.9%;
+  top: 87.7%;
+  left: 83%;
+}
+.chamber_passage {
+  position: absolute;
+  width: 23.8%;
+  height: 17.05%;
+}
+#passage_top {
+  left: 36.5%;
+  top: 0;
+}
+#passage_bottom {
+  left: 36.51%;
+  top: 54.55%;
+}
+#passage_left {
+  left: 0;
+  top: 27.8%;
+}
+#passage_right {
+  left: 76.2%;
+  top: 27.8%;
+}
+
+/*********************************/
+/*            DUNGEON            */
+/*********************************/
+.dungeon_frame {
+  width: calc(var(--card_width) * 4);
+  height: 45px;
+}
+.dungeon_frame[face="cave"] {
+  background: url(img/dungeonFrame-cave_small.png);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+.dungeon_frame[face="stone"] {
+  background: url(img/dungeonFrame-cave_small.png);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.dungeon_frame.bottom {
+  transform: rotateX(180deg);
+}
+
+.open_slot {
+  background-color: rgba(255, 255, 255, 0.25);
+  border: 2px dashed white;
+}
+
+.placement_mode {
+  opacity: var(--placement_transparency);
+}
+
+.placement_selected {
+  opacity: 0.85;
+  box-shadow: 0 0 5px 2px blueviolet;
+}
+
+.placement_mode:hover {
+  opacity: 0.85;
+}
+
+.dungeon_grid_container {
+  display: grid;
+  --grid_overlap: calc(var(--card_height) - var(--card_width));
+  --grid_not_overlap: calc(var(--card_width) - var(--grid_overlap));
+  grid:
+    var(--card_width) repeat(3, var(--grid_overlap) var(--grid_not_overlap)) var(
+      --grid_overlap
+    )
+    / repeat(4, var(--card_width));
+  column-gap: 0px;
+  background: #ffffff33;
+  border-radius: 10px;
+}
+.grid_element {
+  margin: 1px;
+  opacity: 1;
+}
+.grid_element.row1 {
+  grid-row: 1 / span 2;
+  z-index: 1;
+}
+.grid_element.row2 {
+  grid-row: 2 / span 3;
+  z-index: 2;
+}
+.grid_element.row3 {
+  grid-row: 4 / span 3;
+  z-index: 3;
+}
+.grid_element.row4 {
+  grid-row: 6 / span 3;
+  z-index: 4;
+}
+.grid_element.col1 {
+  grid-column: 1;
+}
+.grid_element.col2 {
+  grid-column: 2;
+}
+.grid_element.col3 {
+  grid-column: 3;
+}
+.grid_element.col4 {
+  grid-column: 4;
+}
+
+/*********************************/
+/*            TOKENS             */
+/*********************************/
+
+.token_back.oval {
+  background: url(img/oval_sprite.png);
+  background-size: calc(var(--token_oval_sizeX) * 5) var(--token_oval_sizeY);
+  width: var(--token_oval_sizeX);
+  height: var(--token_oval_sizeY);
+  background-position: 100%;
+  filter: drop-shadow(2px 2px black);
+}
+.token_back.square {
+  background: url(img/square_sprite.png);
+  background-size: calc(var(--token_square_size) * 6) var(--token_square_size);
+  width: var(--token_square_size);
+  height: var(--token_square_size);
+  background-position: 100%;
+  filter: drop-shadow(2px 2px black);
+}
+.token_back.circle {
+  background: url(img/circle_sprite.png);
+  background-size: calc(var(--token_circle_size) * 5) var(--token_circle_size);
+  width: var(--token_circle_size);
+  height: var(--token_circle_size);
+  background-position: 100%;
+  filter: drop-shadow(2px 2px black);
+}
+
+/*********************************/
+/*      BOARD SUBDIVISION        */
+/*********************************/
+
+
+.marker_pos {
+  position: absolute;
+  width: var(--marker_size);
+  height: var(--marker_size);
+}
+
+.marker_pos :nth-child(1) {--marker_index:0;}
+.marker_pos :nth-child(2) {--marker_index:1;}
+.marker_pos :nth-child(3) {--marker_index:2;}
+.marker_pos :nth-child(4) {--marker_index:3;}
+.marker_pos :nth-child(5) {--marker_index:4;}
+
+.marker{
+  position:absolute;
+  width: var(--marker_size);
+  height: var(--marker_size);
+  background: url(img/pieces_sprite.png);
+  background-size: calc(var(--marker_size)*10) var(--marker_size);
+  background-position: calc(((var(--marker_color)*100% + var(--marker_style_offset)*100%) - 100%)/(10 - 1)) 0%;
+  transition: top 0.2s ease-in-out;
+  top: calc(5px * var(--marker_index));
+}
+
+.marker_pos:hover .marker{
+  top:calc(102%*var(--marker_index));
+}
+
+.marker[data-style="3D"]{
+  --marker_style_offset: 5;
+}
+.marker[data-style="2D"]{
+  --marker_style_offset: 0;
+}
+
+
+.gold_column_0 {
+  left: 4.5%;
+}
+.gold_column_1 {
+  left: 12.5%;
+}
+.gold_column_2 {
+  left: 20.75%;
+}
+.gold_column_3 {
+  left: 28.85%;
+}
+.gold_column_4 {
+  left: 36.85%;
+}
+.gold_column_5 {
+  left: 45%;
+}
+.gold_column_6 {
+  left: 53.15%;
+}
+.gold_column_7 {
+  left: 61.25%;
+}
+.gold_column_8 {
+  left: 69.35%;
+}
+.gold_column_9 {
+  left: 77.35%;
+}
+.gold_column_10 {
+  left: 85.5%;
+}
+
+.gold_row_1 {
+  top: 6.2%;
+}
+.gold_row_2 {
+  top: 20.75%;
+}
+.gold_row_3 {
+  top: 35%;
+}
+
+#gold_10 {
+  top: 13.25%;
+  left: 83.85%;
+}
+
+#gold_20 {
+  top: 27.85%;
+  left: 6.15%;
+}
+
+.current_priority_marker {
+  top: 81.6%;
+}
+
+.next_priority_marker {
+  top: 97%;
+}
+
+.priority_1 {
+  left: 8.1%;
+}
+
+.priority_2 {
+  left: 16.9%;
+}
+
+.priority_3 {
+  left: 25.6%;
+}
+
+.priority_4 {
+  left: 34.3%;
+}
+
+.priority_5 {
+  left: 43%;
+}
+
+#goal_card_placeholder {
+  position: absolute;
+  width: var(--card_height);
+  height: var(--card_width);
+  left: 55.35%;
+  top: 53%;
+  transform: rotate(3.5deg);
+}
+
+
+/*********************************/
+/*    MARKET CARD SUBDIVISION    */
+/*********************************/
+
+.market_top, .market_bottom{
+  position:absolute;
+  width:74.6%;
+  height:50%;
+  left:25.4%;
+}
+.market_bottom{
+  top:50%;
+}
+.token[data-shape ="square"]{
+  width:var(--token_square_size);
+  height: var(--token_square_size);
+  border-radius: 25%;
+}
+.token[data-shape ="circle"]{
+  width:var(--token_circle_size);
+  height: var(--token_circle_size);
+  border-radius: 50%;
+
+}
+.token[data-shape ="oval"]{
+  width:var(--token_oval_sizeX);
+  height: var(--token_oval_sizeY);
+  border-radius: 40%;
+}
+
+.token{
+  position:absolute;
+  background: rgba(255, 0, 0, 0.5);
+}
+
+/*one token configuration*/ 
+div[data-tokens = "1"] .token[data-shape = "circle"]{
+  top:30.5%;
+  left:32.5%;
+}
+
+div[data-tokens = "1"] .token[data-shape = "square"]{
+  top:27.5%;
+  left:29.5%;
+}
+
+div[data-tokens = "1"] .token[data-shape = "oval"]{
+  top:22%;
+  left:32.5%;
+}
+
+/*two token configuration, circle-circle, circle-oval, oval-oval and square-square*/
+div[data-tokens = "2"] .token_1.token[data-shape = "circle"],
+div[data-tokens = "2"] .token_1.token[data-shape = "oval"]{
+  left:9.25%;
+}
+
+div[data-tokens = "2"] .token_2.token[data-shape = "circle"],
+div[data-tokens = "2"] .token_2.token[data-shape = "oval"]{
+  left:56%;
+}
+
+div[data-tokens = "2"] .token_1.token[data-shape = "circle"],
+div[data-tokens = "2"] .token_2.token[data-shape = "circle"]{
+  top:31%;
+}
+
+div[data-tokens = "2"] .token_1.token[data-shape = "oval"],
+div[data-tokens = "2"] .token_2.token[data-shape = "oval"]{
+  top: 22%;
+}
+
+div[data-tokens = "2"] .token_1.token[data-shape = "square"],
+div[data-tokens = "2"] .token_2.token[data-shape = "square"]{
+  top: 27%;
+}
+div[data-tokens = "2"] .token_1.token[data-shape = "square"]{
+  left: 6%;
+}
+div[data-tokens = "2"] .token_2.token[data-shape = "square"]{
+  left: 52.5%;
+}
+
+/* 2 token configuration, special cases square-circle, square-oval */
+
+div[data-tokens = "2"][data-hassquare] .token_1.token[data-shape = "square"]{
+  left:8%;
+}
+div[data-tokens = "2"][data-hassquare] .token_2.token[data-shape = "circle"],
+div[data-tokens = "2"][data-hassquare] .token_2.token[data-shape = "oval"]{
+  left:57.75%;
+}
+
+/* 3 (circle) token configuration */ 
+div[data-tokens = "3"] .token_1.token[data-shape = "circle"],
+div[data-tokens = "3"] .token_2.token[data-shape = "circle"]{
+  top:50.5%;
+}
+div[data-tokens = "3"] .token_1.token[data-shape = "circle"]{
+  left:9.5%;
+}
+div[data-tokens = "3"] .token_2.token[data-shape = "circle"]{
+  left:55.5%;
+}
+div[data-tokens = "3"] .token_3.token[data-shape = "circle"]{
+  top: 11%;
+  left:32.5%;
+}
+
