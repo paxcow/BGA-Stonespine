@@ -25,46 +25,68 @@ class Hand
         $this->player_id = $player_id;
         $this->manager = self::$game->chamber_cards;
         $this->thisPlayer = $thisPlayer;
-
         $this->init();
     }
 
     public function init()
     {
         $this->hand = array_keys($this->manager->getPlayerHand($this->player_id));
-        $this->hand = ($this->thisPlayer) ? $this->hand : count($this->hand);
     }
 
     public function add($card_id)
     {
-        if ($this->thisPlayer) {
-            if (array_search($card_id, $this->hand)) {
-                throw new \BgaUserException(self::$game->translate("Warning: This card is already in hand"));
-            } else {
-                $this->hand[] = $card_id;
-            }
+
+        if (array_search($card_id, $this->hand) === true) {
+            throw new \BgaUserException(self::$game->translate("Warning: This card is already in hand"));
         } else {
-            $this->hand++;
+            $this->hand[] = $card_id;
         }
+
     }
 
     public function remove($card_id)
     {
 
-        if ($this->thisPlayer) {
-            $index = array_search($card_id, $this->hand);
-            if ($index !== false) {
-                unset($this->hand[$index]);
-                $this->hand = array_values($this->hand);
-            } else {
-                throw new \BgaUserException(self::$game->translate("Warning: This card is not in your hand"));
-            }
+        $index = array_search($card_id, $this->hand);
+        if ($index !== false) {
+            unset($this->hand[$index]);
+            $this->hand = array_values($this->hand);
         } else {
-            $this->hand = min(0, $this->hand--);
+            throw new \BgaUserException(self::$game->translate("Warning: This card is not in your hand"));
         }
+
     }
 
-    public function getHand():array|int|null{
-        return $this->hand ?? null;
+    public function getSimpleHand(): array
+    {
+        $hand_object = array();
+        foreach ($this->hand as $card) {
+            $hand_object[] = array(
+                "id" => $card,
+                "type" => "chamber"
+            );
+        }
+
+        return $hand_object;
+    }
+
+    public function getFullHand(): array
+    {
+        $hand_object = array();
+        foreach ($this->hand as $card) {
+            $hand_object[] = $this->getFullCard($card);
+        }
+        return $hand_object;
+
+    }
+
+    public function getFullCard($card_id)
+    {
+
+        if (array_search($card_id, $this->hand) === false) {
+            throw new \BgaUserException(self::$game->translate("Warning: This card is not in your hand"));
+        } else {
+            return $this->manager->getCard($card_id);
+        }
     }
 }

@@ -15,6 +15,7 @@ class Chamber extends \APP_DbObject
     public $quadrant4;
     public $name;
     public $type;
+    public $type_arg;
     public $gold;
 
     public function __construct($chamber_id = null)
@@ -31,6 +32,8 @@ class Chamber extends \APP_DbObject
         $cardFromDB = self::getObjectFromDB($sql);
 
         $this->id = $chamber_id;
+        $this->type = $cardFromDB["card_type"];
+        $this->type_arg = $cardFromDB["card_type_arg"];
         $this->top  = $cardFromDB["door_top"];
         $this->bottom  = $cardFromDB["door_bottom"];
         $this->left  = $cardFromDB["door_left"];
@@ -42,7 +45,6 @@ class Chamber extends \APP_DbObject
         $this->quadrant4  = $cardFromDB["element_4"];
 
         $this->name = $cardFromDB["chamber_name"];
-        $this->type = $cardFromDB["card_type"];
         $this->gold = $cardFromDB["gold_value"];
     }
 

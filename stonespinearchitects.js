@@ -180,6 +180,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
     },
 
     onEnteringState_playCard: function (args) {
+      debug(args);
       //check if we the previous pending action triggered a client state
       if (this.gamedatas.client_state) {
         this.setClientState("client_discardCard", {
@@ -241,7 +242,6 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
         if (this.lastCardIdSelected === null) {
           document.getElementById("discardChamber_button").classList.add("disabled");
         }
-        debugger;
         this.addActionButton("undoPlayChamber_button", _("Undo play Chamber"), "onUndoPlaceChamberClicked");
       } else {
         this.addActionButton("unpass_button", _("Undo pass"), "onUnpassClicked");
@@ -252,9 +252,13 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
       this.cards.chamberHand[this.player_id].unselectAll(true);
       this.sendajaxcall("undo", { unpass: true });
       if (Object.keys(this.gamedatas.players).length == 2) {
-        this.setClientState("client_discardCard", {
-          descriptionmyturn: _("${you} must choose a card to discard"),
-        });
+        if (this.cards.chamberHand[this.player_id].getCards().length == 1) {
+          this.onUndoPlaceChamberClicked();
+        } else {
+          this.setClientState("client_discardCard", {
+            descriptionmyturn: _("${you} must choose a card to discard"),
+          });
+        }
       } else {
         this.restoreServerGameState();
       }
@@ -370,11 +374,17 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
       notification_to_register.push("undo_card_placed");
       notification_to_register.push("card_discarded");
       notification_to_register.push("undo_card_discarded");
+      notification_to_register.push("reveal_cards_placed");
+      notification_to_register.push("reveal_cards_discarded");
+      notification_to_register.push("cards_received");
 
       notification_to_register.forEach((notif) => {
         dojo.subscribe(notif, this, "notif_" + notif);
         this.notifqueue.setSynchronous(notif, 1);
       });
+
+      this.notifqueue.setIgnoreNotificationCheck("reveal_cards_placed", (notif) => notif.args.player_id == this.player_id);
+      this.notifqueue.setIgnoreNotificationCheck("reveal_cards_discarded", (notif) => notif.args.player_id == this.player_id);
     },
 
     // TODO: from this point and below, you can write your game notifications handling methods
@@ -382,13 +392,13 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
     //Notification handlers
 
     notif_card_placed: function (notif) {
+      debug(notif);
       this.lastCardIdSelected = null;
       //get parameters from notif
 
-      let card_id = notif.args.card_id;
       let position = notif.args.position;
       let player_id = notif.args.player_id;
-      let card = { id: card_id, type: "chamber" };
+      let card = notif.args.card;
       let anim = {};
       let settings = { slot: position };
 
@@ -402,18 +412,26 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
       this.cards.chamberHand[this.player_id].setSelectionMode("none");
 
       if (Object.keys(this.gamedatas.players).length == 2) {
-        this.setClientState("client_discardCard", {
-          descriptionmyturn: _("${you} must choose a card to discard"),
-        });
+        let cards_left = this.cards.chamberHand[this.player_id].getCards();
+        cards_left_nbr = Array.isArray(cards_left) ? cards_left.length : null;
+        if (cards_left_nbr == 1) {
+          //if this is the last card, automatically discard it
+          this.lastCardIdSelected = cards_left[0].id;
+          this.sendajaxcall("discardChamberCard", { card: this.lastCardIdSelected });
+        } else {
+          this.setClientState("client_discardCard", {
+            descriptionmyturn: _("${you} must choose a card to discard"),
+          });
+        }
       }
     },
 
     notif_undo_card_placed: function (notif) {
+      debug(notif);
       this.lastCardIdSelected = null;
-      let card_id = notif.args.card_id;
 
       let player_id = notif.args.player_id;
-      let card = { id: card_id, type: "chamber" };
+      let card = notif.args.card;
       let origin_stock = this.dungeons.dungeon[player_id];
       let anim = { fromStock: origin_stock };
       let settings = {};
@@ -425,11 +443,11 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
     },
 
     notif_card_discarded: function (notif) {
+      debug(notif);
       this.lastCardIdSelected = null;
-      let card_id = notif.args.card_id;
-      let player_id = notif.args.player_id;
-      let card = { id: card_id, type: "chamber" };
-      
+
+      let card = notif.args.card;
+
       //discard card
       this.cards.discardChamber.addCard(card);
 
@@ -441,22 +459,57 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
     },
 
     notif_undo_card_discarded: function (notif) {
+      debug(notif);
       this.lastCardIdSelected = null;
-      let card_id = notif.args.card_id;
-      let player_id = notif.args.player_id;
-      let card = { id: card_id, type: "chamber" };
-      
+      let card = notif.args.card;
+
       //return card to hand
-      this.cards.discardChamber.addCard(card,undefined,{remove:false});
+      this.cards.discardChamber.addCard(card, undefined, { remove: false });
       this.cards.chamberHand[this.player_id].addCard(card);
 
       //transition back to client state
-        this.setClientState("client_discardCard", {
-          descriptionmyturn: _("${you} must choose a card to discard"),
-        });
-      
+      this.setClientState("client_discardCard", {
+        descriptionmyturn: _("${you} must choose a card to discard"),
+      });
     },
 
+    notif_reveal_cards_placed: function (notif) {
+      debug(notif);
+      let card = notif.args.card;
+      let position = notif.args.position;
+      let player_id = notif.args.player_id;
+      let anim = {};
+      let settings = { slot: position };
+
+      //add card to Dungeon (remove card from LineStock)
+      this.dungeons.dungeon[player_id].addCard(card, anim, settings);
+    },
+    notif_reveal_cards_discarded: function (notif) {
+      debug(notif);
+      let card = notif.args.card;
+      let player_id = notif.args.player_id;
+      this.cards.discardChamber.addCard(card);
+    },
+
+    notif_cards_received: function (notif) {
+      debug(notif);
+
+      let this_player_id = notif.args.player_id;
+      let to_player_id = notif.args.destination;
+      let from_player_id = notif.args.source;
+      let cards_received = notif.args.cards;
+      let cards_passed = this.cards.chamberHand[this_player_id].getCards();
+
+      //send hand to the To player
+      // anonymize them first
+      this.cards.chamberHand[this.player_id].forEach((card) => {
+        card.type_arg = null;
+      });
+      this.cards.chamberHand[to_player_id].addCards(cards_passed, { fromStock: this.cards.chamberHand[this_player_id] }, { visible: false });
+
+      //get hand from the From player
+      this.cards.chamberHand[this_player_id].addCards(cards_received, { fromStock: this.cards.chamberHand[from_player_id] }, { visible: true });
+    },
     // Utilities
 
     sendajaxcall: function (action, args, handler) {

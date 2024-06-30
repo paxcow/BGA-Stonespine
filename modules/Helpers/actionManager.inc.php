@@ -78,11 +78,12 @@ class ActionManager
         }
     }
 
-    public static function committAllActions($player_id = null)
+    public static function committAllActions($player_id = null, &$handlers)
     {
         $actions = self::getAllActions($player_id);
         foreach ($actions as $action) {
             $notifier = new \Helpers\ActionNotifier($player_id);
+            $action->setHandlers($handlers);
             $action->committ($notifier);
         }
     }
@@ -215,7 +216,7 @@ class ActionNotifier
     }
 
     private $player_id;
-    public function __construct(string $player_id)
+    public function __construct(string $player_id = null)
     {
         $this->player_id = $player_id;
     }
@@ -230,12 +231,19 @@ class ActionNotifier
     }
     public function notify(string $notifType, string $notifLog, array $notifArgs)
     {
-        $this->notifyCurrentPlayer($notifType, $notifLog, $notifArgs);
+        if ($this->player_id) {
+            $this->notifyCurrentPlayer($notifType, $notifLog, $notifArgs);
+        } else {
+            $this->notifyAllPlayers($notifType, $notifLog, $notifArgs);
+        }
     }
     public function notifyNoMessage(string $notifType, array $notifArgs)
     {
-        $this->notifyCurrentPlayer($notifType, "", $notifArgs);
-    }
+        if ($this->player_id) {
+            $this->notifyCurrentPlayer($notifType, "", $notifArgs);
+        } else {
+            $this->notifyAllPlayers($notifType, "", $notifArgs);
+        }    }
 
     protected function notifyCurrentPlayer(string $notifType, string $notifLog, array $notifArgs)
     {

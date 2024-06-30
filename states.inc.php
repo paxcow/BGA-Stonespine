@@ -113,7 +113,7 @@ $machinestates = array(
     ),
 
     REVEAL_CARDS => array(
-        "name" => "reevealCards",
+        "name" => "revealCards",
         "description" => clienttranslate('Revealing cards played'),
         "type" => "game",
         "action" => "stRevealCards",
@@ -123,11 +123,11 @@ $machinestates = array(
 
     PASS_CARDS => array(
         "name" => "passCards",
-        "description" => clienttranslate('Passing cards in ${direction} direction'),
+        "description" => clienttranslate('Passing cards in ${direction_label} direction'),
         "type" => "game",
         "action" => "stPassCards",
         "args" => "argPassCards",
-        "transitions" => array("" => _2PL_DRAW_CARD)
+        "transitions" => array("" => CONSTRUCTION_PHASE, "drawCards" => _2PL_DRAW_CARD)
     ),
 
     _2PL_DRAW_CARD => array(

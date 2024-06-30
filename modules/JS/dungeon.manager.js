@@ -84,7 +84,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", g_gamethemeurl + "modu
         for (let r in dungeon) {
           for (let c in dungeon[r]) {
             if (r > 0) {
-              let card = { id: dungeon[r][c].id, type: "chamber" };
+              let card = { id: dungeon[r][c].id, type: dungeon[r][c].type, type_arg:dungeon[r][c].type_arg };
               let slot = r+c;
               this.dungeon[player_id].addCard(card,{},{slot: slot});
             }

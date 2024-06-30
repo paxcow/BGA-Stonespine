@@ -45,60 +45,51 @@ trait SetupGame
         $cards = array();
 
         foreach ($this->chamber_data as $id => $card) {
-            $cards[] = array("type" => $card[0], "type_arg" => 0, "nbr" => 1);
+            $cards[] = array("type" => "chamber", "type_arg" => $id, "nbr" => 1);
         }
         $this->chamber_cards->createCards($cards);
 
-        //add fake
 
-        $columns = array(
-            "door_top",
-            "door_bottom",
-            "door_left",
-            "door_right",
-            "element_1",
-            "element_2",
-            "element_3",
-            "element_4",
-            "chamber_name",
-            "gold_value",
-            "solo_rune"
-        );
 
-        foreach ($this->chamber_data as $id => $card) {
+        foreach ($this->chamber_data as $card) {
+
+            array_splice($card,0,1);
 
             $card = array_map("formatForSQLQuery", $card);
-            $card = array_values($card);
             $sql_part = array();
 
-            foreach ($columns as $field_number => $column) {
-                $sql_part[] = "`$column` = " . $card[$field_number + 1];
+            foreach ($card as $column => $value) {
+                $sql_part[] = "`$column` = " . $value;
             }
 
-            $sql = "UPDATE chamber SET " . implode(", ", $sql_part) . " WHERE card_id = $id";
+            $sql = "UPDATE chamber SET " . implode(", ", $sql_part) . " WHERE card_type_arg = $id";
             $this->DbQuery($sql);
         }
 
         //market cards
-        $cards = [1 => array("type" => "market", "type_arg" => 0, "nbr" => 18)];
+        foreach ($this->market_data as $id => $card) {
+            $cards[] = array("type" => "market", "type_arg" => $id, "nbr" => 1);
+        }
         $this->market_cards->createCards($cards);
 
-        $columns = ["top_cost", "token_top_1", "token_top_2", "token_top_3", "bottom_cost", "token_bottom_1", "token_bottom_2"];
         foreach ($this->market_data as $id => $card) {
             $card = array_map("formatForSQLQuery", $card);
             $sql_parts = array();
 
-            foreach ($columns as $field_numnber => $column) {
-                $sql_parts[] = "`$column` = " . $card[$field_numnber];
+            foreach ($card as $column => $value) {
+                $sql_parts[] = "`$column` = " . $value;
             }
 
-            $sql = "UPDATE market SET " . implode(", ", $sql_parts) . " WHERE card_id = $id";
+            $sql = "UPDATE market SET " . implode(", ", $sql_parts) . " WHERE card_type_arg = $id";
             $this->DbQuery($sql);
         }
 
         //blueprint cards
 
-        $cards = [1 => array("type" => "blueprint", "type_arg" => 0, "nbr" => 8)];
+        foreach ($this->blueprint_data as $id => $card) {
+            $cards[] = array("type" => "blueprint", "type_arg" => $id, "nbr" => 1);
+        }
+
         $this->blueprint_cards->createCards($cards);
 
         foreach ($this->blueprint_data as $id => $scoring) {
@@ -106,18 +97,24 @@ trait SetupGame
 
             $scoring_json = formatForSQLQuery($scoring_json);
 
-            $sql = "UPDATE blueprint SET `scoring` = $scoring_json WHERE `card_id` = $id";
+            $sql = "UPDATE blueprint SET `scoring` = $scoring_json WHERE `card_type_arg` = $id";
             $this->DbQuery($sql);
         }
 
         //challenge cards
-        $cards = [1 => array("type" => "challenge", "type_arg" => 0, "nbr" => 30)];
+        $this->challenge_data = range(1,30);
+        foreach ($this->challenge_data as $id => $card) {
+            $cards[] = array("type" => "challenge", "type_arg" => $id, "nbr" => 1);
+        }
+
         $this->challenge_cards->createCards($cards);
 
 
         //goal cards
-
-        $cards = [1 => array("type" => "goal", "type_arg" => 0, "nbr" => 8)];
+        $this->goal_data = range(1,8);
+        foreach ($this->goal_data as $id => $card) {
+            $cards[] = array("type" => "goal", "type_arg" => $id, "nbr" => 1);
+        }
         $this->goal_cards->createCards($cards);
 
         //token piles
@@ -136,6 +133,7 @@ trait SetupGame
     //////////////////////////////////////////////////////////////////
     function initialGameSetup()
     {
+
 
         $players = $this->loadPlayersBasicInfos();
 

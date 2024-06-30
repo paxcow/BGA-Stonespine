@@ -44,7 +44,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
             this.setupDivByCardType(card, div, "back");
           },
           isCardVisible: (card) => {
-            return Boolean(card.type) && !card.fake;
+            return Boolean(card.type_arg) && !card.fake;
           },
           cardWidth: card_settings.orientation == "portrait" ? CARD_WIDTH : CARD_HEIGHT,
           cardHeight: card_settings.orientation == "portrait" ? CARD_HEIGHT : CARD_WIDTH,
@@ -113,7 +113,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
     setupDivByCardType: function (card, div, face = "card") {
       div.classList.add(card.type ? `${card.type}-${face}` : face);
       if (face != "card") {
-        div.style.backgroundPosition = face == "front" ? (card.type ? this.getPositionInSprite(card.id, this.card_types[card.type].rows, this.card_types[card.type].cols) : "0% 100%") : "0% 100%";
+        div.style.backgroundPosition = face == "front" ? (card.type ? this.getPositionInSprite(card.type_arg, this.card_types[card.type].rows, this.card_types[card.type].cols) : "0% 100%") : "0% 100%";
       }
 
       //for market cards, build the inner structure (token position)
@@ -121,8 +121,6 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
         this.addMarketSubDivs(card, div);
       }
     },
-
-
 
     initHands: function (hands) {
       let this_player = this.game.player_id;
@@ -142,20 +140,19 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
           } else {
             this[stockName][player] = new LineStock(this[manager], targetDiv, {});
           }
+
           //populate hands
           let tempCardsArray = hands[player][card_type];
 
-          if (card_type != "chamber" || player == this_player) {
-            if (tempCardsArray.length > 0) {
-              tempCardsArray.forEach((card) => {
-                this[stockName][player].addCard({ id: card, type: card_type });
-              });
-            }
-          } else {
-            let nbr_cards = tempCardsArray;
-            for (let i = 0; i < nbr_cards; i++) {
-              this[stockName][player].addCard({ id: `${player}_fake_${i}`, type: "chamber" }, null, { visible: false, updateInformations: false });
-            }
+          if (tempCardsArray.length > 0) {
+            tempCardsArray.forEach((card) => {
+              let card_data = {};
+              card_data.id = card.id;
+              card_data.type = card.type;
+              card_data.type_arg = card.type_arg ?? null;
+              card_data.visible = player == this_player || card.type != "chamber" ? true : false;
+              this[stockName][player].addCard(card_data);
+            });
           }
         }
       }
@@ -173,21 +170,23 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
 
           //populate stocks
           let tempCardsArray = table[card_type];
-
           if (card_type != "market") {
             if (tempCardsArray.length > 0) {
               tempCardsArray.forEach((card) => {
-                this[stockName].addCard({ id: card, type: card_type });
+                this[stockName].addCard(card);
               });
             }
           } else {
-            for (let card_index in tempCardsArray) {
-              let card = tempCardsArray[card_index];
-              card.id = card.card_id;
-              card.type = card.card_type;
-              this[stockName].addCard(card);
+            if (tempCardsArray.length > 0) {
+              tempCardsArray.forEach((card) => {
+                card.id = card.card_id;
+                card.type = card.card_type;
+                card.type_arg = card.card_type_arg;
+                this[stockName].addCard(card);
+              });
             }
           }
+
           //create decks (and void stock for discard)
           this.deckChamber = new Deck(this.chamberManager, document.getElementById("chamber_wrapper"), {
             cardNumber: 49,
@@ -205,7 +204,6 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
           });
           this.discardMarket = new VoidStock(this.marketManager, document.getElementById("market_deck"));
 
-
           this.deckChallenge = new Deck(this.challengeManager, document.getElementById("challenge_deck"), {
             cardNumber: 30,
             fakeCardGenerator: (deckId) => {
@@ -213,14 +211,17 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
             },
           });
           this.discardChallenge = new VoidStock(this.challengeManager, document.getElementById("challenge_deck"));
-
         }
       }
     },
 
     getPositionInSprite: function (card_index, sprite_rows, sprite_columns) {
-      yPosition = (Math.floor(card_index / sprite_columns) * 100) / (sprite_rows - 1);
-      xPosition = ((card_index % sprite_columns) * 100) / (sprite_columns - 1);
+      card_index -= 1; //card index start at 1, formula below works with index starting at 0
+
+      const row = Math.floor(card_index / sprite_columns);
+      const col = card_index % sprite_columns;
+      yPosition = (row / (sprite_rows - 1)) * 100;
+      xPosition = (col / (sprite_columns - 1)) * 100;
 
       return `${xPosition}% ${yPosition}%`;
     },

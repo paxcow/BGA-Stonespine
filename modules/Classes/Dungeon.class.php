@@ -65,6 +65,9 @@ class Dungeon extends \APP_DbObject
     }
 
 
+
+
+
     public function getDungeonSize()
     {
         return (count($this->chambers) > 2) ? count($this->chambers) - 2 : null;
@@ -84,7 +87,7 @@ class Dungeon extends \APP_DbObject
         $is_full = count($open_columns) == 0;
 
         $open_slots["row"] = max($last_row, 1) + ($is_full ? 1 : 0);  //row 0 is reserved for doorways only, so we start from 1      
-        $open_slots["col"] = $open_columns;
+        $open_slots["col"] = array_values($open_columns);
 
         return $open_slots;
     }

@@ -20,6 +20,7 @@
 use Classes\Dungeon;
 use Classes\Hand;
 use Helpers\ActionManager;
+use Helpers\Players;
 
 require_once(APP_GAMEMODULE_PATH . 'module/table/table.game.php');
 require_once('modules/utilities.php');
@@ -176,7 +177,7 @@ class StonespineArchitects extends Table
 
         $dungeon = [];
         $hand = [];
-        $clientState= [];
+        $clientState = [];
 
         //rebuild game situation
         //load database into volatile structure
@@ -190,7 +191,7 @@ class StonespineArchitects extends Table
 
         $handlers = ['dungeon' => &$dungeon[$current_player_id], 'hand' => &$hand[$current_player_id], 'state' => &$clientState[$current_player_id]];
 
-        
+
 
         //reload actions from current player - other players' pending actions are not visible to this player
         \Helpers\ActionManager::reloadAllActions($current_player_id, $handlers);
@@ -203,7 +204,7 @@ class StonespineArchitects extends Table
         $result['players'] = self::getCollectionFromDb($sql);
 
         //send client state
-        $result['client_state'] = $clientState[$current_player_id]; 
+        $result['client_state'] = $clientState[$current_player_id];
 
         //players dungeons
         foreach ($dungeon as $player_id => $pl_dungeon) {
@@ -219,28 +220,28 @@ class StonespineArchitects extends Table
         $result['tokens']['circle'] = self::getCollectionFromDb($sql);
 
         //cards on the table
-        $sql = "SELECT card_id FROM challenge WHERE card_location = 'table'";
-        $result['table']['challenge'] = array_keys(self::getCollectionFromDb($sql));
+        $result['table']['challenge'] = $this->challenge_cards->getCardsInLocation("table",null,true);
+        $result['table']['goal'] = $this->goal_cards->getCardsInLocation("table",null,true);
 
-        $sql = "SELECT * FROM market WHERE card_location <> 'deck'";
-        $result['table']['market'] = self::getCollectionFromDb($sql);
+        $sql = "SELECT * FROM market WHERE card_location = 'table'";
+        $result['table']['market'] = $this->getObjectListFromDB($sql);
 
-        $sql = "SELECT card_id FROM goal WHERE card_location <> 'deck'";
-        $result['table']['goal'] = self::getUniqueValueFromDB($sql);
+        //$result['table']['market'] = $this->market_cards->getCardsInLocation("table",null,true);
 
-        //players' hands]
+        //players' hands
 
         foreach ($players as $player_id => $player) {
 
-            $result['hand'][$player_id]["chamber"] = $hand[$player_id]->getHand();
 
             if ($player_id == $current_player_id) {
-                //current players hand
-                $sql = "SELECT card_id FROM challenge WHERE card_location_arg = '$current_player_id'";
-                $result['hand'][$player_id]['challenge'] = array_keys(self::getCollectionFromDb($sql));
-                $sql = "SELECT card_id FROM blueprint WHERE card_location_arg = '$current_player_id'";
-                $result['hand'][$player_id]['blueprint'] = array_keys(self::getCollectionFromDb($sql));
+                $result['hand'][$player_id]['chamber'] = $hand[$player_id]->getFullHand();
+            } else {
+                $result['hand'][$player_id]['chamber'] = $hand[$player_id]->getSimpleHand(); //simple hands hides the type_arg for each card, so that itàs not identifiable
             }
+
+            //current players hand, visible for every player
+            $result['hand'][$player_id]['challenge'] = $this->challenge_cards->getCardsInLocation("hand", $player_id,true);
+            $result['hand'][$player_id]['blueprint'] = $this->blueprint_cards->getCardsInLocation("hand", $player_id, true);
         }
         return $result;
     }
@@ -362,28 +363,7 @@ class StonespineArchitects extends Table
         return $open_slots;
     }
 
-    function argPassCards()
-    {
 
-        $args = array();
-
-        $year = $this->getGameStateValue("CURRENT_YEAR");
-
-        if ($year % 2 == 0) {
-
-            $destination = "counterclockwise";
-            $pass_order = $this->getPrevPlayerTable();
-        } else {
-
-            $destination = "clockwise";
-            $pass_order = $this->getNextPlayerTable();
-        }
-
-        $args["destination"] = $destination;
-        $args["pass_order"] = $pass_order;
-
-        return $args;
-    }
 
     function argPurchaseableTokens()
     {
@@ -411,7 +391,7 @@ class StonespineArchitects extends Table
         }
     }
 
-    function stPassCards()
+    /*     function stPassCards()
     {
 
         $args = $this->argPassCards();
@@ -436,7 +416,7 @@ class StonespineArchitects extends Table
         }
 
         $this->gamestate->nextState("");
-    }
+    } */
 
     function st2plDrawCard()
     {
