@@ -2,6 +2,7 @@
 
 namespace States;
 
+
 trait SetupGame
 {
     ///////////////////////////////////
@@ -26,19 +27,12 @@ trait SetupGame
         $this->blueprint_cards = self::getNew("module.common.deck");
         $this->blueprint_cards->init("blueprint");
 
-        $this->oval_tokens = self::getNew("module.common.deck");
-        $this->oval_tokens->init("oval_token");
-
-        $this->square_tokens = self::getNew("module.common.deck");
-        $this->square_tokens->init("square_token");
-
-        $this->circle_tokens = self::getNew("module.common.deck");
-        $this->circle_tokens->init("circle_token");
+        $this->tokens = new \Classes\TokenManager;
     }
     function populateDecks()
     {
 
-
+        $this->tokens->initTokenTable($this->token_data);   
         //create decks
 
         //chamber cards
@@ -67,6 +61,7 @@ trait SetupGame
         }
 
         //market cards
+        $cards = array();
         foreach ($this->market_data as $id => $card) {
             $cards[] = array("type" => "market", "type_arg" => $id, "nbr" => 1);
         }
@@ -85,7 +80,7 @@ trait SetupGame
         }
 
         //blueprint cards
-
+        $cards = array();
         foreach ($this->blueprint_data as $id => $card) {
             $cards[] = array("type" => "blueprint", "type_arg" => $id, "nbr" => 1);
         }
@@ -102,30 +97,24 @@ trait SetupGame
         }
 
         //challenge cards
-        $this->challenge_data = range(1,30);
+        $cards = array();
+        $this->challenge_data = range(0,29);
         foreach ($this->challenge_data as $id => $card) {
             $cards[] = array("type" => "challenge", "type_arg" => $id, "nbr" => 1);
         }
 
+        
         $this->challenge_cards->createCards($cards);
 
 
         //goal cards
-        $this->goal_data = range(1,8);
+        $cards = array();
+        $this->goal_data = range(0,7);
         foreach ($this->goal_data as $id => $card) {
             $cards[] = array("type" => "goal", "type_arg" => $id, "nbr" => 1);
         }
         $this->goal_cards->createCards($cards);
 
-        //token piles
-
-        foreach ($this->token_data as $shape => $tokens) {
-            $cards = array();
-            foreach ($tokens as $id => $token) {
-                $cards[] = array("type" => $shape, "type_arg" => $token[0], "nbr" => $token[1]);
-            }
-            $this->{$shape . "_tokens"}->createCards($cards, "pile");
-        }
     }
 
     //////////////////////////////////////////////////////////////////
@@ -180,13 +169,20 @@ trait SetupGame
         $this->challenge_cards->pickCardsForLocation($nbr, "deck", "table");
 
         //populate market cards with tokens
-        $market = array_keys($this->market_cards->getCardsInLocation("table"));
-        foreach ($market as $index => $marketCard_id) {
-            $card = new \Classes\Market($marketCard_id);
-            $token_shapes = $card->getTokenShapes();
+        $market = $this->market_cards->getCardsInLocation("table");
+        foreach ($market as $index => $card) {
+            $market_card = new \Classes\Market($card);
+            $token_shapes = $market_card->getTokenShapes();
             foreach ($token_shapes as $panel => $shapes) {
                 foreach ($shapes as $pos => $shape) {
-                    if ($shape != null) $this->{$shape . "_tokens"}->pickCardForLocation("pile", $marketCard_id, (int)($panel . $pos));
+
+                    if ($shape != null) {
+                        $slot = $panel . $pos;
+                        $type = "market";
+                        $location = $index;
+
+                        $this->tokens->pickTokenForLocation($shape,$location,$type,$slot);
+                    }
                 }
             }
         }
@@ -211,6 +207,5 @@ trait SetupGame
         }
     }
 
-
-    
-}
+    }
+    ?>

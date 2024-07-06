@@ -6,27 +6,28 @@ class Market extends \APP_DbObject
 
     private $top = array();
     private $bottom = array();
-    private $card_id;
+    public $card;
     public $cost = array();
+    public $id;
 
-    public function __construct($card_id = null)
+    public function __construct(&$card)
     {
 
-        if (is_null($card_id)) return;
+        if (is_null($card)) return;
 
-        $sql = "SELECT card_id, top_cost, bottom_cost, token_top_1, token_top_2, token_top_3, token_bottom_1, token_bottom_2 FROM market WHERE card_id = $card_id";
-        $card = $this->getCollectionFromDB($sql);
-        $card = $card[$card_id];
+        $this->card = &$card;
 
-        $this->card_id = $card["card_id"];
+        $sql = "SELECT top_cost, bottom_cost, token_top_1, token_top_2, token_top_3, token_bottom_1, token_bottom_2 FROM market WHERE card_id = {$card["id"]}";
+        $extra_info= $this->getObjectFromDB($sql);
 
-        $this->cost["top"] = $card["top_cost"];
-        $this->top["token1"] = $card["token_top_1"];
-        $this->top["token2"] = $card["token_top_2"];
-        $this->top["token3"] = $card["token_top_3"];
-        $this->cost["bottom"] = $card["bottom_cost"];
-        $this->bottom["token1"] = $card["token_bottom_1"];
-        $this->bottom["token2"] = $card["token_bottom_2"];
+        $this->id = $card["id"];
+        $this->card["cost"]["top"] = $extra_info["top_cost"];
+        $this->card["cost"]["bottom"] = $extra_info["bottom_cost"];
+        $this->card["top"][1] = $extra_info["token_top_1"];
+        $this->card["top"][2] = $extra_info["token_top_2"];
+        $this->card["top"][3] = $extra_info["token_top_3"];
+        $this->card["bottom"][1] = $extra_info["token_bottom_1"];
+        $this->card["bottom"][2] = $extra_info["token_bottom_2"];
 
     }
 
@@ -36,7 +37,7 @@ class Market extends \APP_DbObject
     public function canAfford($money)
     {
         $card = array();
-
+        $card["id"] = $this->card["id"];
         $card["top"] = ($money >= $this->cost["top"]);
         $card["bottom"] = ($money >= $this->cost["bottom"]);
     }
@@ -44,23 +45,22 @@ class Market extends \APP_DbObject
     //function to return the tokens ids assigned to this card (if any) and their position;
     public function getTokenShapes()
     {
-        if (!isset($this->card_id)) return array();
+        if (!isset($this->card["id"])) return array();
         
         $tokens = array();
 
-
-        if (is_null($this->top["token2"])) {
-            $tokens[1][0] = $this->top["token1"];
+        if (is_null($this->card["top"][2])) {
+            $tokens[1][0] = $this->card["top"][1];
         } else {
-            foreach ($this->top as $index => $shape) {
+            foreach ($this->card["top"] as $index => $shape) {
                 if (!is_null($shape)) $tokens[1][$index]  = $shape;
             }
         }
-        if (is_null($this->bottom["token2"])) {
-            $tokens[2][0] = $this->top["token1"];
+        if (is_null($this->card["bottom"][2])) {
+            $tokens[2][0] = $this->card["bottom"][1];
         } else {
-            foreach ($this->top as $index => $shape) {
-                if (!is_null($shape)) $tokens[1][$index]  = $shape;
+            foreach ($this->card["bottom"] as $index => $shape) {
+                if (!is_null($shape)) $tokens[2][$index]  = $shape;
             }
         }
 
@@ -76,8 +76,8 @@ class Market extends \APP_DbObject
         foreach ($shapes as $shape) {
             $table = $shape . "_token";
 
-            $sql = "SELECT card_id, card_location_arg FROM $table WHERE card_location  = $this->card_id";
-            $token = $this->getCollectionFromDB($sql, true);
+            $sql = "SELECT * FROM $table WHERE card_location  = {$this->card["id"]}";
+            $token = $this->getObjectListFromDB($sql);
 
             foreach ($token as $token_id => $token_location) {
                 $tokens[$token_id][$token_location] = $shape;

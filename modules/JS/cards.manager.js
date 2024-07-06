@@ -11,13 +11,14 @@
  *
  */
 
-define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamethemeurl + "modules/BGA-cards/bga-cards.js"], function (dojo, declare, bgaCards) {
+define(["dojo", "dojo/_base/declare", g_gamethemeurl + "modules/BGA-cards/bga-cards.js",  g_gamethemeurl + "modules/JS/utils.js"], function (dojo, declare, bgaCards, utils) {
+
   return declare("CardsManager", null, {
     constructor: function (game) {
       this.card_types = {
         chamber: { rows: SPRITE_CHAMBER_ROWS, cols: SPRITE_CHAMBER_COLS, orientation: "portrait" },
         blueprint: { rows: SPRITE_BLUEPRINT_ROWS, cols: SPRITE_BLUEPRINT_COLS, orientation: "portrait" },
-        challenge: { rows: SPRITE_CHAMBER_ROWS, cols: SPRITE_CHALLENGE_COLS, orientation: "landscape" },
+        challenge: { rows: SPRITE_CHALLENGE_ROWS, cols: SPRITE_CHALLENGE_COLS, orientation: "landscape" },
         market: { rows: SPRITE_MARKET_ROWS, cols: SPRITE_MARKET_COLS, orientation: "portrait" },
       };
 
@@ -53,20 +54,21 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
     },
 
     addMarketSubDivs: function (card, div) {
+    if(card.fake) return;
       let token_top_nbr = 0;
       let token_bottom_nbr = 0;
 
       //count positions in top half card
-      if (card.token_top_3 != null) {
+      if (card.top[3] != null) {
         token_top_nbr = 3;
-      } else if (card.token_top_2 != null) {
+      } else if (card.top[2] != null) {
         token_top_nbr = 2;
       } else {
         token_top_nbr = 1;
       }
 
       //count positions in bottom half card
-      if (card.token_bottom_2 != null) {
+      if (card.bottom[2] != null) {
         token_bottom_nbr = 2;
       } else {
         token_bottom_nbr = 1;
@@ -79,9 +81,11 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
 
       let tempDivTop = document.createElement("div");
       tempDivTop.classList.add("market_top");
+      tempDivTop.dataset.half = "top";
       tempDivTop.dataset.tokens = token_top_nbr;
       let tempDivBottom = document.createElement("div");
       tempDivBottom.classList.add("market_bottom");
+      tempDivBottom.dataset.add = "bottom";
       tempDivBottom.dataset.tokens = token_bottom_nbr;
 
       let tempDivTop_tokens = [];
@@ -89,18 +93,18 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
 
       for (let i = 1; i <= token_top_nbr; i++) {
         tempDivTop_tokens[i] = document.createElement("div");
-        if (card[`token_top_${i - 1}`] == "square" && card[`token_top_${i}`] != "square") tempDivTop.dataset.hassquare = "yes";
-        tempDivTop_tokens[i].id = card.card_id + "_top_" + i;
+        if (card.top['${i - 1}'] == "square" && card.top['${i}'] != "square") tempDivTop.dataset.hassquare = "yes";
+        tempDivTop_tokens[i].id = card.id + "_top_" + i;
         tempDivTop_tokens[i].classList.add("token", `token_${i}`);
-        tempDivTop_tokens[i].dataset.shape = card[`token_top_${i}`];
+        tempDivTop_tokens[i].dataset.shape = card.top[`${i}`];
         tempDivTop.appendChild(tempDivTop_tokens[i]);
       }
 
       for (let i = 1; i <= token_bottom_nbr; i++) {
         tempDivBottom_tokens[i] = document.createElement("div");
-        tempDivBottom_tokens[i].id = card.card_id + "_bottom_" + i;
+        tempDivBottom_tokens[i].id = card.id + "_bottom_" + i;
         tempDivBottom_tokens[i].classList.add("token", `token_${i}`);
-        tempDivBottom_tokens[i].dataset.shape = card[`token_bottom_${i}`];
+        tempDivBottom_tokens[i].dataset.shape = card.bottom[`${i}`] ;
         tempDivBottom.appendChild(tempDivBottom_tokens[i]);
       }
 
@@ -113,7 +117,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
     setupDivByCardType: function (card, div, face = "card") {
       div.classList.add(card.type ? `${card.type}-${face}` : face);
       if (face != "card") {
-        div.style.backgroundPosition = face == "front" ? (card.type ? this.getPositionInSprite(card.type_arg, this.card_types[card.type].rows, this.card_types[card.type].cols) : "0% 100%") : "0% 100%";
+        div.style.backgroundPosition = face == "front" ? (card.type ? utils.getPositionInSprite(card.type_arg, this.card_types[card.type].rows, this.card_types[card.type].cols) : "0% 100%") : "0% 100%";
       }
 
       //for market cards, build the inner structure (token position)
@@ -160,7 +164,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
 
     initTable: function (table) {
       for (let card_type in table) {
-        if (card_type != "goal") {
+        if (card_type != "goal" && card_type != "token") {
           // create stocks
           let manager = card_type + "Manager";
           let stockName = `${card_type}River`;
@@ -179,14 +183,11 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
           } else {
             if (tempCardsArray.length > 0) {
               tempCardsArray.forEach((card) => {
-                card.id = card.card_id;
-                card.type = card.card_type;
-                card.type_arg = card.card_type_arg;
                 this[stockName].addCard(card);
               });
             }
           }
-
+        }
           //create decks (and void stock for discard)
           this.deckChamber = new Deck(this.chamberManager, document.getElementById("chamber_wrapper"), {
             cardNumber: 49,
@@ -211,28 +212,10 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
             },
           });
           this.discardChallenge = new VoidStock(this.challengeManager, document.getElementById("challenge_deck"));
-        }
+        
       }
     },
 
-    getPositionInSprite: function (card_index, sprite_rows, sprite_columns) {
-      card_index -= 1; //card index start at 1, formula below works with index starting at 0
 
-      const row = Math.floor(card_index / sprite_columns);
-      const col = card_index % sprite_columns;
-      yPosition = (row / (sprite_rows - 1)) * 100;
-      xPosition = (col / (sprite_columns - 1)) * 100;
-
-      return `${xPosition}% ${yPosition}%`;
-    },
-    normalizeBackgroundSize: function (type) {
-      width = card_types[type] == "portrait" ? CARD_WIDTH : CARD_HEIGHT;
-      height = card_types[type] == "portrait" ? CARD_HEIGHT : CARD_WIDTH;
-
-      calcWidth = width * card_types[type]["cols"];
-      calcHeight = height * card_types[type]["rows"];
-
-      return `${calcWidth} ${calcHeight}`;
-    },
   });
 });

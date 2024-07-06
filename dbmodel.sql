@@ -122,12 +122,14 @@ CREATE TABLE IF NOT EXISTS `market` (
   PRIMARY KEY (`card_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;
 
-CREATE TABLE IF NOT EXISTS `oval_token` (
-  `card_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `card_type` varchar(16) NOT NULL,
-  `card_type_arg` int(11) NOT NULL,
-  `card_location` varchar(16) NOT NULL, /*market card_id or chamber card_id*/
-  `card_location_arg` int(11) NOT NULL, /*slot on the market card, or quadrant of the chamber.*/
+CREATE TABLE IF NOT EXISTS `token` (
+  `token_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `token_shape` varchar(16) NOT NULL,
+  `token_face` varchar(16) NOT NULL,
+  `token_type` int(11) NOT NULL,
+  `token_location` varchar(16) NOT NULL, /*market card_id or chamber card_id or player_id*/
+  `token_location_type` varchar(16) NOT NULL, /* "player", "market", "chamber", "reserve"*/
+  `token_location_slot` int(11), /*slot on the market card, or quadrant of the chamber, null if in player's area.*/
 /*
 Quadrant arg
 1 -- Quadrant 1
@@ -143,21 +145,5 @@ Slot on market card
 21 -- bottom left
 22 -- bottom right
 */
-  PRIMARY KEY (`card_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;
-CREATE TABLE IF NOT EXISTS `square_token` (
-  `card_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `card_type` varchar(16) NOT NULL,
-  `card_type_arg` int(11) NOT NULL,
-  `card_location` varchar(16) NOT NULL, /*market1, market2, market3, market4*/
-  `card_location_arg` int(11) NOT NULL, /*when on a market card, location_arg can be top left, top right, top center, bottom.*/
-  PRIMARY KEY (`card_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;
-CREATE TABLE IF NOT EXISTS `circle_token` (
-  `card_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `card_type` varchar(16) NOT NULL,
-  `card_type_arg` int(11) NOT NULL,
-  `card_location` varchar(16) NOT NULL, /*market1, market2, market3, market4*/
-  `card_location_arg` int(11) NOT NULL, /*when on a market card, location_arg can be top left, top right, top center, bottom.*/
-  PRIMARY KEY (`card_id`)
+  PRIMARY KEY (`token_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;

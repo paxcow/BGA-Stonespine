@@ -29,6 +29,7 @@ require_once('modules/Classes/Market.class.php');
 require_once('modules/Classes/Blueprint.class.php');
 require_once('modules/Classes/Chamber.class.php');
 require_once('modules/Classes/Dungeon.class.php');
+require_once('modules/Classes/Token.class.php');
 require_once('modules/States/setup.traits.inc.php');
 require_once('modules/States/construction.traits.inc.php');
 require_once('modules/States/improvement.traits.inc.php');
@@ -211,22 +212,26 @@ class StonespineArchitects extends Table
             $result['dungeon'][$player_id] = $pl_dungeon->getDungeon();
         }
 
-        //tokens out
-        $sql = "SELECT * FROM oval_token WHERE card_location <> 'deck'";
-        $result['tokens']['oval'] = self::getCollectionFromDb($sql);
-        $sql = "SELECT * FROM square_token WHERE card_location <> 'deck'";
-        $result['tokens']['square'] = self::getCollectionFromDb($sql);
-        $sql = "SELECT * FROM circle_token WHERE card_location <> 'deck'";
-        $result['tokens']['circle'] = self::getCollectionFromDb($sql);
 
         //cards on the table
-        $result['table']['challenge'] = $this->challenge_cards->getCardsInLocation("table",null,true);
-        $result['table']['goal'] = $this->goal_cards->getCardsInLocation("table",null,true);
+        $result['table']['challenge'] = $this->challenge_cards->getCardsInLocation("table", null, true);
+        $result['table']['goal'] = $this->goal_cards->getCardsInLocation("table", null, true);
 
-        $sql = "SELECT * FROM market WHERE card_location = 'table'";
-        $result['table']['market'] = $this->getObjectListFromDB($sql);
+        $temp_market_cards = $this->market_cards->getCardsInLocation("table", NULL, TRUE);
 
-        //$result['table']['market'] = $this->market_cards->getCardsInLocation("table",null,true);
+        foreach ($temp_market_cards as $card) {
+            $market = new \Classes\Market($card);
+            $result['table']['market'][] = $market->card;
+        }
+
+        //tokens out
+        $result['table']['token'] = array();
+        foreach ($result['table']['market'] as $market) {
+            $new_tokens =  $this->tokens->getTokensInLocation($market['id']);
+            $result['table']['token'] += $new_tokens;
+        }
+
+
 
         //players' hands
 
@@ -236,11 +241,11 @@ class StonespineArchitects extends Table
             if ($player_id == $current_player_id) {
                 $result['hand'][$player_id]['chamber'] = $hand[$player_id]->getFullHand();
             } else {
-                $result['hand'][$player_id]['chamber'] = $hand[$player_id]->getSimpleHand(); //simple hands hides the type_arg for each card, so that itàs not identifiable
+                $result['hand'][$player_id]['chamber'] = $hand[$player_id]->getHand(); //simple hands hides the type_arg for each card, so that itàs not identifiable
             }
 
             //current players hand, visible for every player
-            $result['hand'][$player_id]['challenge'] = $this->challenge_cards->getCardsInLocation("hand", $player_id,true);
+            $result['hand'][$player_id]['challenge'] = $this->challenge_cards->getCardsInLocation("hand", $player_id, true);
             $result['hand'][$player_id]['blueprint'] = $this->blueprint_cards->getCardsInLocation("hand", $player_id, true);
         }
         return $result;
@@ -349,20 +354,6 @@ class StonespineArchitects extends Table
     }    
     */
 
-    function argOpenDungeonSlots()
-    {
-        $open_slots = array();
-
-        $players = $this->loadPlayersBasicInfos();
-
-        foreach ($players as $player_id => $player) {
-            $dungeon = new \Classes\Dungeon($player_id);
-            $open_slots[$player_id] = $dungeon->getDungeonOpenSlots();
-        }
-
-        return $open_slots;
-    }
-
 
 
     function argPurchaseableTokens()
@@ -378,74 +369,12 @@ class StonespineArchitects extends Table
 
 
 
-    function st2plDiscardCard()
-    {
 
-        $players  = $this->loadPlayersBasicInfos();
-        if (count($players) > 2) {
 
-            $this->gamestate->nextState("passCardsToNextPlayer");
-        } else {
-            //special code for 2 player
-            $this->gamestate->nextState("passCardsToNextPlayer");
-        }
-    }
 
-    /*     function stPassCards()
-    {
 
-        $args = $this->argPassCards();
 
-        $players = $this->loadPlayersBasicInfos();
 
-        foreach ($players as $player_id => $player) {
-
-            //next player in table order    
-            $next_player_id = $args["pass_order"][$player_id];
-
-            //pass cards to next player
-            $this->chamber_cards->moveAllCardsInLocation("hand", "hand", $player_id, $next_player_id);
-
-            //notify the new player (the one who got the cards, not the current player!)
-
-            $notif_args = array();
-            $notif_args["source"] = $player_id;
-            $notif_args["cards"] = array_keys($this->chamber_cards->getCardsInLocation("hand", $next_player_id));
-
-            $this->notifyPlayer($next_player_id, "cardsPassed", totranslate("You received 5 new cards from " . $player["player_name"]), $notif_args);
-        }
-
-        $this->gamestate->nextState("");
-    } */
-
-    function st2plDrawCard()
-    {
-
-        $players  = $this->loadPlayersBasicInfos();
-        if (count($players) == 2) {
-
-            //special code for 2 player
-            //foreach
-
-        }
-        $this->gamestate->nextState("");
-    }
-
-    function stImprovementPhase()
-    {
-
-        $transition = (\Helpers\Players::haveGold() > 0) ? "activatePlayer" : "everyonePassed";
-
-        $this->gamestate->nextState($transition);
-    }
-
-    function stActivateRichestPlayer()
-    {
-
-        $next_player = \Helpers\Players::getRichest();
-        $this->gamestate->changeActivePlayer($next_player);
-        $this->gamestate->nextState("");
-    }
 
 
     public function translate(string $text)

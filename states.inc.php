@@ -127,7 +127,7 @@ $machinestates = array(
         "type" => "game",
         "action" => "stPassCards",
         "args" => "argPassCards",
-        "transitions" => array("" => CONSTRUCTION_PHASE, "drawCards" => _2PL_DRAW_CARD)
+        "transitions" => array("nextRound" => CONSTRUCTION_PHASE, "drawCards" => _2PL_DRAW_CARD)
     ),
 
     _2PL_DRAW_CARD => array(
@@ -159,16 +159,17 @@ $machinestates = array(
         "description" => clienttranslate('${you} must choose to buy a Token from the Market or Pass'),
         "type" => "activeplayer",
         "args" => "argPurchaseableTokens",
-        "possibleactions" => array("buyToken","cancelToken","pass"), 
-        "transitions" => array("tokenBought" => PLAYER_PLACE_TOKEN, "tokenCanceled" => PLAYER_TOKEN_OR_PASS, "playerPassed" => PLAYER_PASSED) 
+        "possibleactions" => array("buyToken","pass"), 
+        "transitions" => array("tokenBought" => PLAYER_PLACE_TOKEN, "playerPassed" => PLAYER_PASSED) 
     ),
 
     PLAYER_PLACE_TOKEN => array(
         "name" => "playerPlaceToken",
         "description" => clienttranslate('$(you) must place the token in your dungeon'),
-        "type" => "game",
-        "action" => "stSpendGold",
-        "transitions" => array("" => IMPROVEMENT_PHASE) 
+        "type" => "activeplayer",
+        "args" => "argTokenSlots",
+        "possibleactions" => array("placeToken","giveTokenBack"), 
+        "transitions" => array("endTurn" => IMPROVEMENT_PHASE, "goBack" => PLAYER_TOKEN_OR_PASS) 
     ),
 
     PLAYER_PASSED => array(
@@ -185,7 +186,7 @@ $machinestates = array(
         "type" => "multipleplayeractive",
         "action" => "stPlayerSelectChallenge",
         "possibleactions" => array("selectChallenge", "cancelChallenge"),
-        "transitions" => array("challengeCanceled" => PLAYER_SELECT_CHALLENGE,"challengeSelected" => ACTIVATE_NEXT_PLAYER) 
+        "transitions" => array("" =>IMPROVEMENT_PHASE) 
     ),
 
     PREPARE_CLEANUP_PHASE => array(

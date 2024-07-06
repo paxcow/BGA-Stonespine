@@ -5,7 +5,7 @@ namespace Helpers;
 
 trait Undo
 {
-    function undo($unpass = false)
+    function undo($unpass = false, $steps = 1)
     {
         $player_id = $this->getCurrentPlayerId();
 
@@ -26,20 +26,28 @@ trait Undo
 
             $handlers = ['state' => &$state, 'hand' => &$hand, 'dungeon' => &$dungeon];
 
+            //calculate how many actions can be retraced
+            $nbr_actions = count(\Helpers\ActionManager::getAllActions($player_id));
+            $steps = min($steps, $nbr_actions);
+
+
             //reload pending actions to update volatile game situation
             \Helpers\ActionManager::reloadAllActions($player_id, $handlers);
 
 
-            //undo last action
-            $last_action = \Helpers\ActionManager::getLastAction($player_id);
-            if ($last_action) {
-                self::trace("********** UNDO " . $last_action::class . "*******************");
-                $last_action->setHandlers($handlers);
-                $notifier = new \Helpers\ActionNotifier($player_id);
-                $last_action->undo($notifier);
-                self::trace("********** REMOVE ACTION " . $last_action->action_id . "*******************");
+            //undo the last $step actions
 
-                \Helpers\ActionManager::removeAction($last_action->action_id);
+            for ($steps; $steps > 0; $steps--) {
+                $last_action = \Helpers\ActionManager::getLastAction($player_id);
+                if ($last_action) {
+                    self::trace("********** UNDO " . $last_action::class . "*******************");
+                    $last_action->setHandlers($handlers);
+                    $notifier = new \Helpers\ActionNotifier($player_id);
+                    $last_action->undo($notifier);
+                    self::trace("********** REMOVE ACTION " . $last_action->action_id . "*******************");
+
+                    \Helpers\ActionManager::removeAction($last_action->action_id);
+                }
             }
         }
     }
@@ -243,7 +251,8 @@ class ActionNotifier
             $this->notifyCurrentPlayer($notifType, "", $notifArgs);
         } else {
             $this->notifyAllPlayers($notifType, "", $notifArgs);
-        }    }
+        }
+    }
 
     protected function notifyCurrentPlayer(string $notifType, string $notifLog, array $notifArgs)
     {

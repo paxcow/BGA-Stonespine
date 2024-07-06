@@ -57,7 +57,7 @@ class Hand
 
     }
 
-    public function getSimpleHand(): array
+    public function getHand(): array
     {
         $hand_object = array();
         foreach ($this->hand as $card) {

@@ -109,10 +109,11 @@ class action_stonespinearchitects extends APP_GameAction
         // Retrieve arguments
         // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
         $unpass = self::getArg("unpass", AT_bool, false, false);
+        $steps = self::getArg("steps", AT_int,false,1);
 
 
         // Then, call the appropriate method in your game logic, like "playCard" or "myAction"
-        $this->game->undo($unpass);
+        $this->game->undo($unpass, $steps);
 
 
         self::ajaxResponse();

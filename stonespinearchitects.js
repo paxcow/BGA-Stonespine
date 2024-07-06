@@ -32,7 +32,22 @@ const SPRITE_MARKET_COLS = 9;
 var isDebug = window.location.host == "studio.boardgamearena.com" || window.location.hash.indexOf("debug") > -1;
 var debug = isDebug ? console.info.bind(window.console) : function () {};
 
-define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamethemeurl + "modules/BGA-cards/bga-cards.js", g_gamethemeurl + "modules/JS/dungeon.manager.js", g_gamethemeurl + "modules/JS/cards.manager.js", g_gamethemeurl + "modules/JS/market.manager.js"], function (dojo, declare) {
+define([
+  "dojo",
+  "dojo/_base/declare",
+  g_gamethemeurl + "modules/JS/utils.js",
+  "ebg/core/gamegui",
+  "ebg/counter",
+  g_gamethemeurl + "modules/BGA-cards/bga-cards.js", 
+  g_gamethemeurl + "modules/JS/dungeon.manager.js", 
+  g_gamethemeurl + "modules/JS/cards.manager.js", 
+  g_gamethemeurl + "modules/JS/market.manager.js"
+], function (
+  dojo,
+  declare,
+  utils
+){
+  console.log("utils:", utils);
   return declare("bgagame.stonespinearchitects", ebg.core.gamegui, {
     constructor: function () {
       console.log("stonespinearchitects constructor");
@@ -72,11 +87,17 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
       //Creating the card managers
       this.cards = new CardsManager(this);
       this.cards.initHands(this.gamedatas.hand);
+      ;
       this.cards.initTable(this.gamedatas.table);
 
       this.dungeons = new DungeonManager(this);
       this.dungeons.setup();
       this.dungeons.init();
+
+      debugger;
+      this.market = new MarketManager;
+      market_card_ids = this.gamedatas.table.market.map(obj => obj.id);
+      this.market.addCards(market_card_ids);
 
       //create markers and position them
 
@@ -190,7 +211,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
         return;
       }
 
-      if (this.isCurrentPlayerActive()) {
+      if (!this.isSpectator) {
         //add clickable to cards in hand
         this.cards.chamberHand[this.player_id].setSelectionMode("single");
         this.cards.chamberHand[this.player_id].onSelectionChange = (selection, lastChange) => {
@@ -230,10 +251,12 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
         this.cards.chamberHand[this.player_id].onSelectionChange = (selection, lastChange) => {
           if (selection.length > 0) {
             this.lastCardIdSelected = selection[0].id;
-            document.querySelector("#discardChamber_button").classList.remove("disabled");
+            let button = document.querySelector("#discardChamber_button");
+            if (button) button.classList.remove("disabled");
           } else {
             this.lastCardIdSelected = null;
-            document.querySelector("#discardChamber_button").classList.add("disabled");
+            let button = document.querySelector("#discardChamber_button");
+            if (button) button.classList.add("disabled");
           }
         };
 
@@ -250,17 +273,24 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
 
     onUnpassClicked: function (evt) {
       this.cards.chamberHand[this.player_id].unselectAll(true);
-      this.sendajaxcall("undo", { unpass: true });
-      if (Object.keys(this.gamedatas.players).length == 2) {
-        if (this.cards.chamberHand[this.player_id].getCards().length == 1) {
-          this.onUndoPlaceChamberClicked();
-        } else {
+
+      nbr_players = Object.keys(this.gamedatas.players).length;
+      cards_remaining = this.cards.chamberHand[this.player_id].getCards().length;
+
+      let steps_back = 1;
+
+      if (nbr_players == 2 && cards_remaining == 0) steps_back++; //in a 2 players game, if there are no cards remaining, Unpass retraces two steps: discard last card, unplay the second to last card.
+
+      utils.sendAjaxcall("undo", { unpass: true, steps: steps_back });
+
+      if (nbr_players == 2) {
+        if ((steps_back == 1)) {
           this.setClientState("client_discardCard", {
             descriptionmyturn: _("${you} must choose a card to discard"),
           });
+        } else {
+          this.restoreServerGameState();
         }
-      } else {
-        this.restoreServerGameState();
       }
     },
 
@@ -270,12 +300,12 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
         return;
       }
       this.dungeons.placementMode(false);
-      this.sendajaxcall("placeChamberCard", { card: this.lastCardIdSelected, posX: this.lastPosXSelected, posY: this.lastPosYSelected });
+      utils.sendAjaxcall("placeChamberCard", { card: this.lastCardIdSelected, posX: this.lastPosXSelected, posY: this.lastPosYSelected });
     },
 
     onUndoPlaceChamberClicked: function (evt) {
       this.cards.chamberHand[this.player_id].unselectAll();
-      this.sendajaxcall("undo", {});
+      utils.sendAjaxcall("undo", {});
       this.restoreServerGameState();
     },
 
@@ -284,7 +314,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
         this.showMessage(_("You must select a Chamber card first, and a position in the Dungeon"), "only_to_log");
         return;
       }
-      this.sendajaxcall("discardChamberCard", { card: this.lastCardIdSelected });
+      utils.sendAjaxcall("discardChamberCard", { card: this.lastCardIdSelected });
     },
 
     ///////////////////////////////////////////////////
@@ -370,21 +400,26 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
       // dojo.subscribe('yourCardDiscarded',this,"notif_cardDiscarded")
 
       let notification_to_register = [];
-      notification_to_register.push("card_placed");
-      notification_to_register.push("undo_card_placed");
-      notification_to_register.push("card_discarded");
-      notification_to_register.push("undo_card_discarded");
-      notification_to_register.push("reveal_cards_placed");
-      notification_to_register.push("reveal_cards_discarded");
-      notification_to_register.push("cards_received");
+
+      notification_to_register.push({ name: "card_placed" });
+      notification_to_register.push({ name: "undo_card_placed" });
+      notification_to_register.push({ name: "card_discarded" });
+      notification_to_register.push({ name: "undo_card_discarded" });
+      notification_to_register.push({ name: "reveal_cards_placed", condition: (notif) => notif.args.player_id == this.player_id });
+      notification_to_register.push({ name: "reveal_cards_discarded", condition: (notif) => notif.args.player_id == this.player_id });
+      notification_to_register.push({ name: "cards_received", delay: 500 });
+      notification_to_register.push({ name: "card_picked" });
 
       notification_to_register.forEach((notif) => {
-        dojo.subscribe(notif, this, "notif_" + notif);
-        this.notifqueue.setSynchronous(notif, 1);
-      });
+        dojo.subscribe(notif.name, this, "notif_" + notif.name);
 
-      this.notifqueue.setIgnoreNotificationCheck("reveal_cards_placed", (notif) => notif.args.player_id == this.player_id);
-      this.notifqueue.setIgnoreNotificationCheck("reveal_cards_discarded", (notif) => notif.args.player_id == this.player_id);
+        if (notif.delay === undefined) notif.delay = 1;
+        this.notifqueue.setSynchronous(notif.name, notif.delay);
+
+        if (notif.condition !== undefined) {
+          this.notifqueue.setIgnoreNotificationCheck(notif.name, notif.condition);
+        }
+      });
     },
 
     // TODO: from this point and below, you can write your game notifications handling methods
@@ -412,17 +447,9 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
       this.cards.chamberHand[this.player_id].setSelectionMode("none");
 
       if (Object.keys(this.gamedatas.players).length == 2) {
-        let cards_left = this.cards.chamberHand[this.player_id].getCards();
-        cards_left_nbr = Array.isArray(cards_left) ? cards_left.length : null;
-        if (cards_left_nbr == 1) {
-          //if this is the last card, automatically discard it
-          this.lastCardIdSelected = cards_left[0].id;
-          this.sendajaxcall("discardChamberCard", { card: this.lastCardIdSelected });
-        } else {
-          this.setClientState("client_discardCard", {
-            descriptionmyturn: _("${you} must choose a card to discard"),
-          });
-        }
+        this.setClientState("client_discardCard", {
+          descriptionmyturn: _("${you} must choose a card to discard"),
+        });
       }
     },
 
@@ -455,7 +482,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
       this.cards.chamberHand[this.player_id].setSelectionMode("none");
 
       //restore server state
-      this.restoreServerGameState();
+      //      this.restoreServerGameState();
     },
 
     notif_undo_card_discarded: function (notif) {
@@ -502,7 +529,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
 
       //send hand to the To player
       // anonymize them first
-      this.cards.chamberHand[this.player_id].forEach((card) => {
+      this.cards.chamberHand[this_player_id].cards.forEach((card) => {
         card.type_arg = null;
       });
       this.cards.chamberHand[to_player_id].addCards(cards_passed, { fromStock: this.cards.chamberHand[this_player_id] }, { visible: false });
@@ -510,42 +537,16 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
       //get hand from the From player
       this.cards.chamberHand[this_player_id].addCards(cards_received, { fromStock: this.cards.chamberHand[from_player_id] }, { visible: true });
     },
+
+    notif_card_picked: function (notif) {
+      debug(notif);
+      let player_id = notif.args.player_id;
+      let card = notif.args.card;
+      this.cards.chamberHand[player_id].addCard(card, { fromStock: this.cards.deckChamber });
+    },
     // Utilities
 
-    sendajaxcall: function (action, args, handler) {
-      if (!args) {
-        args = {};
-      }
-      args.lock = true;
-      if (action == "undo" || this.checkAction(action)) {
-        this.ajaxcall("/" + this.game_name + "/" + this.game_name + "/" + action + ".html", args, (result) => {}, handler);
-      }
-    },
-
-    getScaledDimension: function (dimension) {
-      this.getPositionInSprite();
-      return dimension * this.getZoomFactor();
-    },
-
-    getZoomFactor: function () {
-      return this.zoomFactor();
-    },
-
-    /**
-     *
-     * @param {Number} card_index - the index of the card to locate in the sprite, starting from 1
-     * @param {Number} sprite_rows - nbr of rows in the sprite
-     * @param {Number} sprite_columns - nbr of columns in the sprite
-     * @returns - returns a string to be used in a background-position CSS attribute, representing the X and Y offset in %
-     */
-
-    getPositionInSprite: function (card_index, sprite_rows, sprite_columns) {
-      yPosition = (Math.floor((card_index - 1) / sprite_columns) * 100) / (sprite_rows - 1);
-      xPosition = (((card_index - 1) % sprite_columns) * 100) / (sprite_columns - 1);
-
-      return `${xPosition}% ${yPosition}%`;
-    },
-
+    
     initGoldMarkers: function (players, style = "3D") {
       for (let player in players) {
         const colorX = {
@@ -596,7 +597,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter", g_gamet
       let card = document.createElement("div");
       card.id = `goal_${cardId}`;
       card.classList.add("goal-card");
-      card.style.backgroundPosition = this.getPositionInSprite(cardId, 8, 1);
+      card.style.backgroundPosition = utils.getPositionInSprite(cardId, 8, 1);
       let targetDiv = document.getElementById("goal_card_placeholder");
 
       targetDiv.appendChild(card);

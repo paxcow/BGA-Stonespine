@@ -40,26 +40,8 @@ trait Construction
     function argPlayCard()
     {
 
-
         $players = array_keys($this->loadPlayersBasicInfos());
 
- /*        //chamber cards in players' hands, as list of card_id
-
-        $chambers = array();
-
-        foreach ($players as $player_id) {
-
-            $chambers[$player_id] = array_keys($this->chamber_cards->getCardsInLocation("hand", $player_id));
-        }
- */
-        //challenge cards in players' hands, as a list of card_id
-
-        $challenges = array();
-
-        foreach ($players as $player_id) {
-
-            $challenges[$player_id] = array_keys($this->challenge_cards->getCardsInLocation("hand", $player_id));
-        }
 
         //dungeon slots the player can play card to as slot => (row,col)
 
@@ -68,17 +50,15 @@ trait Construction
         foreach ($players as $player_id) {
 
             $dungeon = new \Classes\Dungeon($player_id);
+
             $open_slots[$player_id] = $dungeon->getDungeonOpenSlots();
         }
-
         //compose the arg array with private info and send
         $args = array();
         foreach ($players as $player_id) {
 
             $args["_private"][$player_id] = array(
 
-            //    "chambers" => $chambers[$player_id],
-            //    "challenges" => $challenges[$player_id],
                 "slots" => $open_slots[$player_id]
 
             );
@@ -89,6 +69,7 @@ trait Construction
     function placeChamberCard($card_id, $row, $col)
     {
         $this->checkAction("placeChamberCard");
+
         $card = $this->chamber_cards->getCard($card_id);
         $cardName = $this->chamber_data[$card["type_arg"]]["chamber_name"];
         $player_id = $this->getCurrentPlayerId();
@@ -115,13 +96,19 @@ trait Construction
 
         if ($this->getPlayersNumber() != 2) {
             $this->gamestate->setPlayerNonMultiactive($player_id, "");
+        } else {
+            if (count($hand->getHand()) == 1) {
+                $card = $hand->getHand()[0];
+                $auto = true;
+                $this->discardChamberCard($card["id"],$auto);
+            }
         }
     }
 
-    function discardChamberCard($card_id)
+    function discardChamberCard($card_id, $auto = false)
     {
-        $this->checkAction("discardChamberCard");
-        
+        if (!$auto) $this->checkAction("discardChamberCard");
+
         $card = $this->chamber_cards->getCard($card_id);
 
         $player_id = $this->getCurrentPlayerId();
@@ -198,40 +185,40 @@ trait Construction
             }
             foreach ($players as $player_id => $player) {
                 $this->chamber_cards->moveAllCardsInLocation("temp", "hand", $player_id, $player_id);
-                $this->notifyPlayer($player_id,"cards_received",clienttranslate("You have received " . count($notif_args[$player_id]['cards']) ." card(s) from {$notif_args[$player_id]['source_name']}"), [
+                $this->notifyPlayer($player_id, "cards_received", clienttranslate("You have received " . count($notif_args[$player_id]['cards']) . " card(s) from {$notif_args[$player_id]['source_name']}"), [
                     'player_id' => $player_id,
                     'source' => $notif_args[$player_id]['source'],
-                    'destination' => $notif_args[$player_id]['destination'], 
+                    'destination' => $notif_args[$player_id]['destination'],
                     'cards' => $notif_args[$player_id]['cards']
                 ]);
             }
-            $nextState = (count($players) == 2) ? "drawCards" : ""; 
+            $nextState = (count($players) == 2) ? "drawCards" : "nextRound";
         } else {
-            $nextState = "";
+            $nextState = "nextRound";
         }
         $this->gamestate->nextState($nextState);
     }
 
-    function st2plDrawCard(){
+    function st2plDrawCard()
+    {
         $players = $this->loadPlayersBasicInfos();
-        foreach ($players as $player_id => $player){
-            $card_picked = $this->chamber_cards->pickCard("deck",$player_id);
+        foreach ($players as $player_id => $player) {
+            $card_picked = $this->chamber_cards->pickCard("deck", $player_id);
             //send newly picked card to each player
-            $this->notifyPlayer($player_id,"card_picked",clienttranslate('You draw a new card: ${chamber_name}'), array(
+            $this->notifyPlayer($player_id, "card_picked", clienttranslate('You draw a new card: ${chamber_name}'), array(
                 "player_id" => $player_id,
                 "chamber_name" => $this->chamber_data[$card_picked["type_arg"]]["chamber_name"],
                 "card" => $card_picked
             ));
             //anonymize the card and send to all players
             $card_picked["type_arg"] = null;
-            $this->notifyAllPlayers("card_picked",clienttranslate('${player_name} draws a new card'), array(
+            $this->notifyAllPlayers("card_picked", clienttranslate('${player_name} draws a new card'), array(
                 "player_id" => $player_id,
-                "player_name" => $player["name"],
+                "player_name" => $player["player_name"],
                 "card" => $card_picked
             ));
         }
         $this->gamestate->nextState("");
-
     }
 }
 
@@ -306,8 +293,6 @@ class PlayCardActionCommand extends \Helpers\ActionCommand
                 "card_name" => $this->chamberName,
             )
         );
-
- 
     }
     public function reload($notifier = null)
     {
@@ -380,7 +365,7 @@ class DiscardCardActionCommand extends \Helpers\ActionCommand
     public function undo($notifier)
     {
         \Helpers\ActionManager::removeAction($this->action_id);
-        $this->hand->add($this->chamberId); 
+        $this->hand->add($this->chamberId);
 
         $notifier->notify(
             "undo_card_discarded",
@@ -391,7 +376,6 @@ class DiscardCardActionCommand extends \Helpers\ActionCommand
                 "card_name" => $this->chamberName,
             )
         );
-
     }
     public function reload($notifier = null)
     {
