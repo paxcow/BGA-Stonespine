@@ -502,7 +502,12 @@ function sortFunction() {
 /**
  * The abstract stock. It shouldn't be used directly, use stocks that extends it.
  */
-var CardStock = /** @class */ (function () {
+var CardStock = /** @class */ (/**
+ * Description placeholder
+ *
+ * @returns {typeof CardStock}
+ */
+function () {
     /**
      * Creates the stock and register it on the manager.
      *
@@ -535,6 +540,13 @@ var CardStock = /** @class */ (function () {
     CardStock.prototype.getCards = function () {
         return this.cards.slice();
     };
+    /**
+     * @returns the card in the stock with id: cardId, if existing
+     */
+    CardStock.prototype.getCard = function(cardId){
+        
+        return this.cards.find( (card) => this.manager.getId(card) == cardId); 
+    }
     /**
      * @returns if the stock is empty
      */

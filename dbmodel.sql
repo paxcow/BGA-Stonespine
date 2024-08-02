@@ -55,8 +55,12 @@ CREATE TABLE IF NOT EXISTS `chamber` (
   `card_location_arg` int(11) NOT NULL,
   `door_top` boolean, 
   `door_bottom` boolean,
-  `door_left` boolean,
+  `door_left` boolean,  
   `door_right` boolean,
+  `passage_top` boolean DEFAULT false,
+  `passage_bottom` boolean DEFAULT false,
+  `passage_left` boolean DEFAULT false,
+  `passage_right` boolean DEFAULT false,
   `element_1` varchar(16), /*standard quadrant notation, 1 is top right, 2 top left, 3 bottom left, 4 bottom right*/
   `element_2` varchar(16),
   `element_3` varchar(16),
@@ -144,6 +148,9 @@ Slot on market card
 20 -- bottom center
 21 -- bottom left
 22 -- bottom right
+Secret passages only =>
+location_type = [top, bottom, left, right]
+location_slot = (row)(col)
 */
   PRIMARY KEY (`token_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;

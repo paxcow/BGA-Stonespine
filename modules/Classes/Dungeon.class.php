@@ -65,12 +65,14 @@ class Dungeon extends \APP_DbObject
     }
 
 
-
+    public function getLastRow(){
+        return max(array_keys($this->chambers));
+    }
 
 
     public function getDungeonSize()
     {
-        return (count($this->chambers) > 2) ? count($this->chambers) - 2 : null;
+        return (count($this->chambers) > 2) ? count($this->chambers) - 2 : null; // don't count entrance and exit doors
     }
 
     public function getDungeonOpenSlots()
@@ -90,6 +92,57 @@ class Dungeon extends \APP_DbObject
         $open_slots["col"] = array_values($open_columns);
 
         return $open_slots;
+    }
+
+    public function getAllOpenSlots()
+    {
+        $open_slots = array();
+        foreach ($this->chambers as $r => $row ){
+            if($r == 0 || $r == 5) continue;
+            foreach ($row as $c => $chamber){
+                $open_central_quadrants = $chamber->getOpenElements();
+                $open_passages = $chamber->getOpenPassages();
+                $open_slots[$chamber->id]["quadrant"] = $open_central_quadrants;
+                $open_slots[$chamber->id]["passage"] = $open_passages;
+            }
+        }
+
+
+        return $open_slots;
+    }
+
+    public function getIncome($notifier){
+        $gold = 0;
+
+        //create an array to store the lowest row occupied for each column
+        $lowest_row = array_fill(1,4,-1);
+
+        //in each column, find the card lower in the column
+        foreach($this->chambers as $r => $row){
+            foreach($row as $c => $chamber){
+                $lowest_row[$c] = max($lowest_row[$c], $row);
+        }}
+        
+        //then cycle throuhg all the cards, get gold from icons in the chamber + gold for the card in the last row
+
+        foreach($this->chambers as $r => $row){
+            foreach($row as $c => $chamber){
+                if ($r<1) continue;
+                $new_gold = $chamber->getGold($r == $lowest_row[$c]);
+                $notifier->notifyAllPlayers("animate_gold_received","",[
+                    "player_id" => $this->player_id,
+                    "gold" => $new_gold,
+                    "card_id" => $chamber->id,
+                ]);
+                $gold += $new_gold;
+            }
+        } 
+        \Helpers\Players::gainGold($this->player_id,$gold);
+        $notifier -> notifyAllPlayers("gold_received",clienttranslate('${player_name} receives ${gold} gold.'),[
+            "player_name" => $notifier->getPlayerNameById($this->player_id),
+            "player_id" => $this->player_id,
+            "gold" => $gold,
+        ]);
     }
 
     // Setters

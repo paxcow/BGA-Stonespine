@@ -93,7 +93,7 @@ class Players extends \APP_DbObject{
 
     public static function gainGold($player_id, $gold = 1){
         if ($gold<0) return false;
-        $sql = "UPDATE player SET `gold` = `gold` + $gold WHERE `player_id = $player_id";
+        $sql = "UPDATE player SET `gold` = gold + $gold WHERE `player_id` = $player_id";
         return self::DbQuery($sql);
     }
     
@@ -104,7 +104,7 @@ class Players extends \APP_DbObject{
 
         if ($price<0 || $gold < $price) return false;
 
-        $sql = "UPDATE player SET `gold` = `gold` - $gold WHERE `player_id = $player_id";
+        $sql = "UPDATE player SET `gold` = gold - $gold WHERE `player_id` = $player_id";
         return self::DbQuery($sql);
     }
 

@@ -143,7 +143,7 @@ $machinestates = array(
         "description" => clienttranslate('Improvement phase'),
         "type" => "game",
         "action" => "stImprovementPhase",
-        "transitions" => array("activatePlayer" => ACTIVATE_NEXT_PLAYER, "everyonePassed" => PREPARE_CLEANUP_PHASE) 
+        "transitions" => array("activatePlayer" => ACTIVATE_NEXT_PLAYER) 
     ),
 
     ACTIVATE_NEXT_PLAYER => array(
@@ -151,23 +151,25 @@ $machinestates = array(
         "description" => "",
         "type" => "game",
         "action" => "stActivateRichestPlayer",
-        "transitions" => array("" => PLAYER_TOKEN_OR_PASS) 
+        "transitions" => array("playOrPass" => PLAYER_TOKEN_OR_PASS, "everyonePassed" => PREPARE_CLEANUP_PHASE) 
     ),
 
     PLAYER_TOKEN_OR_PASS => array(
         "name" => "playerTokenOrPass",
-        "description" => clienttranslate('${you} must choose to buy a Token from the Market or Pass'),
+        "description" => clienttranslate('${actplayer} must choose to buy a Token from the Market or Pass'),
+        "descriptionmyturn" => clienttranslate('${you} must choose to buy a Token from the Market or Pass'),
         "type" => "activeplayer",
         "args" => "argPurchaseableTokens",
-        "possibleactions" => array("buyToken","pass"), 
+        "possibleactions" => array("buyTokens","pass"), 
         "transitions" => array("tokenBought" => PLAYER_PLACE_TOKEN, "playerPassed" => PLAYER_PASSED) 
     ),
 
     PLAYER_PLACE_TOKEN => array(
         "name" => "playerPlaceToken",
-        "description" => clienttranslate('$(you) must place the token in your dungeon'),
+        "description" => clienttranslate('${actplayer} must place the token in their dungeon'),
+        "descriptionmyturn" => clienttranslate('${you} must place the token in your dungeon'),
         "type" => "activeplayer",
-        "args" => "argTokenSlots",
+        "args" => "argOpenSlots",
         "possibleactions" => array("placeToken","giveTokenBack"), 
         "transitions" => array("endTurn" => IMPROVEMENT_PHASE, "goBack" => PLAYER_TOKEN_OR_PASS) 
     ),
@@ -186,7 +188,7 @@ $machinestates = array(
         "type" => "multipleplayeractive",
         "action" => "stPlayerSelectChallenge",
         "possibleactions" => array("selectChallenge", "cancelChallenge"),
-        "transitions" => array("" =>IMPROVEMENT_PHASE) 
+        "transitions" => array("" =>ACTIVATE_NEXT_PLAYER) 
     ),
 
     PREPARE_CLEANUP_PHASE => array(

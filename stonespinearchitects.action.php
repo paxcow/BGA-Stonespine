@@ -68,8 +68,8 @@ class action_stonespinearchitects extends APP_GameAction
         // Retrieve arguments
         // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
         $card = self::getArg("card", AT_posint, true);
-        $col = self::getArg("posX", AT_posint, true);
-        $row = self::getArg("posY", AT_posint, true);
+        $col = self::getArg("col", AT_posint, true);
+        $row = self::getArg("row", AT_posint, true);
 
 
         // Then, call the appropriate method in your game logic, like "playCard" or "myAction"
@@ -105,16 +105,28 @@ class action_stonespinearchitects extends APP_GameAction
     {
         self::trace("*********  UNDO!! ***************");
         self::setAjaxMode();
+        print_r("undo!");
 
         // Retrieve arguments
         // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
         $unpass = self::getArg("unpass", AT_bool, false, false);
         $steps = self::getArg("steps", AT_int,false,1);
-
+        $changeStateAfter = self::getArg("state", AT_alphanum,false,false);
 
         // Then, call the appropriate method in your game logic, like "playCard" or "myAction"
-        $this->game->undo($unpass, $steps);
+        $this->game->undo($unpass, $steps, $changeStateAfter);
 
+
+        self::ajaxResponse();
+    }
+
+    public function buyTokens(){
+        self::setAjaxMode();
+
+        $card_id = self::getArg("id",AT_alphanum,true);
+        $section = self::getArg("section",AT_alphanum,true);
+        
+        $this->game->buyTokens($card_id,$section);
 
         self::ajaxResponse();
     }

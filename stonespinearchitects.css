@@ -70,7 +70,8 @@
     }
 */
 
-@import url(modules/BGA-cards/bga-cards.css);
+@import url(modules/bga-cards/bga-cards.css);
+@import url(modules/bga-zoom/bga-zoom.css);
 
 /*********************************/
 /* GENERAL VARIABLES AND WRAPPER */
@@ -83,19 +84,25 @@ body {
 div {
   --zoom_factor: 1;
 
-  --card_width: calc(126px * var(--zoom_factor));
-  --card_height: calc(176px * var(--zoom_factor));
+  --card_width: calc(126rem / 16 * var(--zoom_factor));
+  --card_height: calc(176rem / 16 * var(--zoom_factor));
 
-  --token_circle_size: calc(34px * var(--zoom_factor));
-  --token_square_size: calc(40px * var(--zoom_factor));
-  --token_oval_sizeX: calc(34px * var(--zoom_factor));
-  --token_oval_sizeY: calc(50px * var(--zoom_factor));
+  --token_circle_size: calc(34rem / 16 * var(--zoom_factor));
+  --token_square_size: calc(40rem / 16 * var(--zoom_factor));
+  --token_oval_sizeX: calc(34rem / 16 * var(--zoom_factor));
+  --token_oval_sizeY: calc(50rem / 16 * var(--zoom_factor));
 
-  --marker_size : calc(38px * var(--zoom_factor));
+  --door_height: calc(38rem / 16 * var(--zoom_factor));
+  --door_width: calc(70rem / 16 * var(--zoom_factor));
+  --door_base_offset: 0;
 
-  --board_width: calc(496px * var(--zoom_factor));
-  --board_height: calc(328px * var(--zoom_factor));
+  --marker_size: calc(38rem / 16 * var(--zoom_factor));
+
+  --board_width: calc(496rem / 16 * var(--zoom_factor));
+  --board_height: calc(328rem / 16 * var(--zoom_factor));
   --placement_transparency: 0.5;
+
+  caret-color: transparent;
 }
 
 .wrapper {
@@ -119,9 +126,47 @@ div {
 }
 
 /*********************************/
+/*        ANIMATIONS             */
+/*********************************/
+@keyframes highlight-actionable {
+  0% {
+    filter: drop-shadow(1px 1px 2px black) brightness(70%);
+  }
+  50% {
+    filter: drop-shadow(1px 1px 2px black) brightness(130%);
+  }
+  100% {
+    filter: drop-shadow(1px 1px 2px black) brightness(70%);
+  }
+}
+
+@keyframes highlight-actionable-token {
+  0% {
+    filter: drop-shadow(1px 1px 2px black) brightness(85%);
+  }
+  50% {
+    filter: drop-shadow(1px 1px 2px black) brightness(110%);
+  }
+  100% {
+    filter: drop-shadow(1px 1px 2px black) brightness(85%);
+  }
+}
+
+.actionable {
+  animation: highlight-actionable 2s infinite;
+}
+[data-selected] .actionable {
+  animation: none;
+  filter: brightness(40%);
+}
+
+/*********************************/
 /*        GAME AREAS             */
 /*********************************/
 
+#my_hand_wrapper {
+  width: calc(var(--card_width) * 5.5);
+}
 
 .player_area,
 .player_hand_chambers,
@@ -131,12 +176,24 @@ div {
   align-items: flex-start;
 }
 
-#market_wrapper{
-  max-width: calc(var(--card_width)*2.2);
+#my_token_staging {
+  background: rgba(255, 255, 255, 0.3);
+  position: relative;
+  width: 9rem;
+  height: 9rem;
+  display: flex;
 }
 
-#challenge_wrapper{
-  max-width: calc(var(--card_height)*2.2);
+#market_wrapper {
+  max-width: calc(var(--card_width) * 2.2);
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
+#challenge_wrapper {
+  max-width: calc(var(--card_height) * 2.2);
+  flex-direction: column;
+  flex-wrap: nowrap;
 }
 
 #score_board {
@@ -150,8 +207,15 @@ div {
 
 .dungeon_wrapper {
   align-items: center;
-  margin: 10px 15px 50px ;
+  margin: 10px 15px 50px;
 }
+.overlay {
+  position: absolute;
+  width: calc(var(--card_width) * 4);
+  height: calc(var(--card_width) * 4);
+  pointer-events: none;
+}
+
 #board {
   width: var(--board_width);
   height: var(--board_height);
@@ -182,8 +246,13 @@ div {
 /*             CARDS             */
 /*********************************/
 
-.bga-cards_selected-card {
+.card {
+  z-index: 99;
+}
+
+.bga-cards_selected-card.actionable {
   box-shadow: 0 0 5px 3px blueviolet;
+  filter: brightness(100%);
 }
 
 /*Chambers*/
@@ -201,6 +270,7 @@ div {
 }
 
 .chamber-back {
+  border-radius: 8px;
   background-image: url(img/chamber_sprite-small.png);
   background-size: calc(var(--card_width) * 10) calc(var(--card_height) * 11);
   background-position: 0% 100%;
@@ -232,7 +302,7 @@ div {
   position: relative;
   height: var(--card_width);
   width: var(--card_height); /*portrait*/
-  margin:0px 3px;
+  margin: 0px 3px;
 }
 
 .challenge-front {
@@ -253,7 +323,7 @@ div {
   border-radius: 8px;
   position: relative;
   height: var(--card_height);
-  width: var(--card_width); 
+  width: var(--card_width);
   margin: 0px 3px;
 }
 
@@ -272,126 +342,178 @@ div {
 
 /*Goal*/
 
-
 .goal-card {
   border-radius: 8px;
   border: 1px solid grey;
   background: url(img/goal_sprite-small.png);
-  background-size: calc(var(--card_height)*8) var(--card_width);
+  background-size: calc(var(--card_height) * 8) var(--card_width);
   position: relative;
   height: var(--card_width);
   width: var(--card_height);
-  box-shadow: 2px 2px 2px 2px rgba(20, 20, 20, .75);
+  box-shadow: 2px 2px 2px 2px rgba(20, 20, 20, 0.75);
 }
 
 /*********************************/
 /*      CHAMBER CARDS AREAS      */
 /*********************************/
 
-.chamber_quadrant {
+.chamber-card .element-slot {
   width: 29.9%;
   height: 21.4%;
   position: absolute;
 }
-#quadrant1 {
+
+.element-slot.actionable,
+.passage-slot.actionable {
+  animation: none;
+}
+
+[data-selected="element"] .element-slot.actionable,
+[data-selected="passage"] .passage-slot.actionable {
+  animation: highlight-actionable 2s infinite;
+  border: 2px dashed white;
+}
+
+.slot {
+  display: flex;
+  box-sizing: border-box;
+}
+.element-slot {
+  align-items: center;
+  justify-content: center;
+}
+.element-slot[data-quadrant="1"] {
   top: 10.2%;
   left: 54%;
 }
-#quadrant2 {
+.element-slot[data-quadrant="2"] {
   top: 10.2%;
   left: 12.7%;
 }
-#quadrant3 {
+.element-slot[data-quadrant="3"] {
   top: 38.6%;
   left: 12.7%;
 }
-#quadrant4 {
+.element-slot[data-quadrant="4"] {
   top: 38.6%;
   left: 54%;
 }
-.chamber_type {
+.chamber-card .chamber_type {
   position: absolute;
   width: 13.8%;
   height: 9.9%;
   top: 2.8%;
   left: 4%;
 }
-.chamber_income {
+.chamber-card .income {
   position: absolute;
   width: 13.7%;
   height: 9.8%;
   top: 81.1%;
   left: 42.6%;
 }
-.chamber_rune {
+.chamber-card .solo {
   position: absolute;
   width: 8.2%;
   height: 5.9%;
   top: 87.7%;
   left: 83%;
 }
-.chamber_passage {
+.chamber-card .passage-slot {
   position: absolute;
-  width: 23.8%;
-  height: 17.05%;
+  width: var(--token_oval_sizeX);
+  height: var(--token_oval_sizeX);
 }
-#passage_top {
-  left: 36.5%;
+.passage-slot[data-passage="top"] {
+  left: calc(var(--card_width) / 2 - var(--token_oval_sizeX) / 2);
   top: 0;
 }
-#passage_bottom {
-  left: 36.51%;
-  top: 54.55%;
+.passage-slot[data-passage="bottom"] {
+  left: calc(var(--card_width) / 2 - var(--token_oval_sizeX) / 2);
+  top: calc(var(--card_height) / 1.4 - var(--token_oval_sizeX));
 }
-#passage_left {
+.passage-slot[data-passage="left"] {
   left: 0;
-  top: 27.8%;
+  top: calc(var(--card_height) / 2.8 - var(--token_oval_sizeX) / 2);
 }
-#passage_right {
-  left: 76.2%;
-  top: 27.8%;
+.passage-slot[data-passage="right"] {
+  left: calc(var(--card_width) - var(--token_oval_sizeX));
+  top: calc(var(--card_height) / 2.8 - var(--token_oval_sizeX) / 2);
 }
 
 /*********************************/
 /*            DUNGEON            */
 /*********************************/
 .dungeon_frame {
+  position: relative;
   width: calc(var(--card_width) * 4);
   height: 45px;
+  display: flex;
 }
-.dungeon_frame[face="cave"] {
+.dungeon_frame.top[face="cave"] {
   background: url(img/dungeonFrame-cave_small.png);
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
 }
-.dungeon_frame[face="stone"] {
+.dungeon_frame.top[face="stone"] {
   background: url(img/dungeonFrame-cave_small.png);
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
 }
-
-.dungeon_frame.bottom {
-  transform: rotateX(180deg);
+.dungeon_column {
+  position: relative;
+  width: 25%;
+  height: 100%;
+  margin: 0px;
+  padding: 0px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
-
-.open_slot {
+.door {
+  position: relative;
+  width: var(--door_width);
+  height: var(--door_height);
+  background-size: calc(var(--door_width) * 10) calc(var(--door_height));
+  background-image: url(img/doors_sprite.png);
+}
+.door {
+  --door_base_offset: 55.5%;
+}
+.door[data-color="101820"] {
+  background-position: calc(var(--door_base_offset) + 0%);
+}
+.door[data-color="3A5DAE"] {
+  background-position: calc(var(--door_base_offset) + 11.1%);
+}
+.door[data-color="00843D"] {
+  background-position: calc(var(--door_base_offset) + 22.2%);
+}
+.door[data-color="DA291C"] {
+  background-position: calc(var(--door_base_offset) + 33.3%);
+}
+.door[data-color="F0B323"] {
+  background-position: calc(var(--door_base_offset) + 44.4%);
+}
+.open-slot {
   background-color: rgba(255, 255, 255, 0.25);
   border: 2px dashed white;
 }
 
-.placement_mode {
+.chamber-card.placement_mode {
   opacity: var(--placement_transparency);
 }
 
-.placement_selected {
+.chamber-card.placement_selected.actionable {
+  filter: brightness(100%);
   opacity: 0.85;
   box-shadow: 0 0 5px 2px blueviolet;
 }
 
-.placement_mode:hover {
-  opacity: 0.85;
+.chamber-card.placement_mode:hover {
+  opacity: 0.9;
 }
 
 .dungeon_grid_container {
@@ -399,9 +521,7 @@ div {
   --grid_overlap: calc(var(--card_height) - var(--card_width));
   --grid_not_overlap: calc(var(--card_width) - var(--grid_overlap));
   grid:
-    var(--card_width) repeat(3, var(--grid_overlap) var(--grid_not_overlap)) var(
-      --grid_overlap
-    )
+    var(--card_width) repeat(3, var(--grid_overlap) var(--grid_not_overlap)) var(--grid_overlap)
     / repeat(4, var(--card_width));
   column-gap: 0px;
   background: #ffffff33;
@@ -439,40 +559,84 @@ div {
 .grid_element.col4 {
   grid-column: 4;
 }
+/*********************************/
+/*        PASSAGE OVERLAY        */
+/*********************************/
+.passage-overlay-slot {
+  position: absolute;
+  height: var(--token_oval_sizeX);
+  width: var(--token_oval_sizeX);
+  background: rgba(255, 0, 0, 0.35);
+  display: flex;
+}
+.passage-overlay-slot[data-passage="top"] {
+  align-items: flex-start;
+  justify-content: center;
+}
+.passage-overlay-slot[data-passage="top"] .token{
+  transform: translateY(-50%) rotate(180deg);
+}
+.passage-overlay-slot[data-passage="bottom"] {
+  align-items: flex-end;
+  justify-content: center;
+}
+.passage-overlay-slot[data-passage="bottom"] .token{
+  transform: translateY(50%);
+}
+.passage-overlay-slot[data-passage="left"] {
+  align-items: center;
+  justify-content: flex-start;
+}
+.passage-overlay-slot[data-passage="left"] .token {
+  transform: rotate(-90deg) translateX(-50%);
+  transform-origin: left;
+}
+.passage-overlay-slot[data-passage="right"] {
+  align-items: center;
+  justify-content: flex-end;
+}
+.passage-overlay-slot[data-passage="right"] .token{
+  transform: rotate(90deg) translateX(+50%);
+  transform-origin: right;
+
+}
 
 /*********************************/
-/*            TOKENS             */
+/*        TOKEN RESERVE          */
 /*********************************/
+
+.token_back {
+  filter: drop-shadow(1px 1px 2px black);
+}
 
 .token_back.oval {
   background: url(img/oval_sprite.png);
   background-size: calc(var(--token_oval_sizeX) * 5) var(--token_oval_sizeY);
+  background-position: 100%;
+
   width: var(--token_oval_sizeX);
   height: var(--token_oval_sizeY);
-  background-position: 100%;
-  filter: drop-shadow(2px 2px black);
 }
 .token_back.square {
   background: url(img/square_sprite.png);
   background-size: calc(var(--token_square_size) * 6) var(--token_square_size);
+  background-position: 100%;
+
   width: var(--token_square_size);
   height: var(--token_square_size);
-  background-position: 100%;
-  filter: drop-shadow(2px 2px black);
 }
 .token_back.circle {
   background: url(img/circle_sprite.png);
   background-size: calc(var(--token_circle_size) * 5) var(--token_circle_size);
+  background-position: 100%;
+
   width: var(--token_circle_size);
   height: var(--token_circle_size);
-  background-position: 100%;
-  filter: drop-shadow(2px 2px black);
 }
 
 /*********************************/
 /*      BOARD SUBDIVISION        */
 /*********************************/
-
 
 .marker_pos {
   position: absolute;
@@ -480,34 +644,43 @@ div {
   height: var(--marker_size);
 }
 
-.marker_pos :nth-child(1) {--marker_index:0;}
-.marker_pos :nth-child(2) {--marker_index:1;}
-.marker_pos :nth-child(3) {--marker_index:2;}
-.marker_pos :nth-child(4) {--marker_index:3;}
-.marker_pos :nth-child(5) {--marker_index:4;}
+.marker_pos :nth-child(1) {
+  --marker_index: 0;
+}
+.marker_pos :nth-child(2) {
+  --marker_index: 1;
+}
+.marker_pos :nth-child(3) {
+  --marker_index: 2;
+}
+.marker_pos :nth-child(4) {
+  --marker_index: 3;
+}
+.marker_pos :nth-child(5) {
+  --marker_index: 4;
+}
 
-.marker{
-  position:absolute;
+.marker {
+  position: absolute;
   width: var(--marker_size);
   height: var(--marker_size);
   background: url(img/pieces_sprite.png);
-  background-size: calc(var(--marker_size)*10) var(--marker_size);
-  background-position: calc(((var(--marker_color)*100% + var(--marker_style_offset)*100%) - 100%)/(10 - 1)) 0%;
+  background-size: calc(var(--marker_size) * 10) var(--marker_size);
+  background-position: calc(((var(--marker_color) * 100% + var(--marker_style_offset) * 100%) - 100%) / (10 - 1)) 0%;
   transition: top 0.2s ease-in-out;
   top: calc(5px * var(--marker_index));
 }
 
-.marker_pos:hover .marker{
-  top:calc(102%*var(--marker_index));
+.marker_pos:hover .marker {
+  top: calc(102% * var(--marker_index));
 }
 
-.marker[data-style="3D"]{
+.marker[data-style="3D"] {
   --marker_style_offset: 5;
 }
-.marker[data-style="2D"]{
+.marker[data-style="2D"] {
   --marker_style_offset: 0;
 }
-
 
 .gold_column_0 {
   left: 4.5%;
@@ -600,113 +773,148 @@ div {
   transform: rotate(3.5deg);
 }
 
-
 /*********************************/
-/*    MARKET CARD SUBDIVISION    */
+/*    MARKET CARD AND TOKENS     */
 /*********************************/
 
-.market_top, .market_bottom{
-  position:absolute;
-  width:74.6%;
-  height:50%;
-  left:25.4%;
+.market_top,
+.market_bottom {
+  position: absolute;
+  width: 74.6%;
+  height: 45%;
+  left: 25.4%;
+  z-index: 101;
 }
-.market_bottom{
-  top:50%;
+.market_bottom {
+  top: 52.5%;
 }
-.token[data-shape ="square"]{
-  width:var(--token_square_size);
+.market_top {
+  top: 2.5%;
+}
+.token[data-shape="square"] {
+  width: var(--token_square_size);
   height: var(--token_square_size);
   border-radius: 25%;
 }
-.token[data-shape ="circle"]{
-  width:var(--token_circle_size);
+.token[data-shape="circle"] {
+  width: var(--token_circle_size);
   height: var(--token_circle_size);
   border-radius: 50%;
-
 }
-.token[data-shape ="oval"]{
-  width:var(--token_oval_sizeX);
+.token[data-shape="oval"] {
+  width: var(--token_oval_sizeX);
   height: var(--token_oval_sizeY);
   border-radius: 40%;
 }
 
-.token{
-  position:absolute;
-  background: rgba(255, 0, 0, 0.5);
+.token[data-token-id] {
+  background-image: url(img/token_row_sprite.png);
+  background-size: 580px 50px;
+}
+.token {
+  position: absolute;
+  filter: drop-shadow(2px 2px black);
+  z-index: 100;
+}
+.passage-slot[data-passage="left"] .token {
+  transform: rotate(90deg) translateX(-50%);
+  transform-origin: center left;
+}
+.passage-slot[data-passage="right"] .token {
+  transform: rotate(90deg) translateX(50%);
+  transform-origin: center right;
+}
+.passage-slot[data-passage="top"] .token {
+  transform: rotate(180deg) translateY(50%);
+}
+.passage-slot[data-passage="bottom"] .token {
+  transform: translateY(50%);
 }
 
-/*one token configuration*/ 
-div[data-tokens = "1"] .token[data-shape = "circle"]{
-  top:30.5%;
-  left:32.5%;
+/* .purchasable {
+  background-color: rgba(218, 165, 32, 0.15);
+} */
+
+.purchasable .token,
+.token-staged {
+  border: 1px solid goldenrod;
+  animation: highlight-actionable-token 2s infinite;
 }
 
-div[data-tokens = "1"] .token[data-shape = "square"]{
-  top:27.5%;
-  left:29.5%;
+.token-selected {
+  box-shadow: 0 0 5px 3px blueviolet;
 }
 
-div[data-tokens = "1"] .token[data-shape = "oval"]{
-  top:22%;
-  left:32.5%;
+/*one token configuration*/
+div[data-tokens="1"] .token_slot[data-shape="circle"] {
+  top: 30.5%;
+  left: 32.5%;
+}
+
+div[data-tokens="1"] .token_slot[data-shape="square"] {
+  top: 27.5%;
+  left: 29.5%;
+}
+
+div[data-tokens="1"] .token_slot[data-shape="oval"] {
+  top: 22%;
+  left: 32.5%;
 }
 
 /*two token configuration, circle-circle, circle-oval, oval-oval and square-square*/
-div[data-tokens = "2"] .token_1.token[data-shape = "circle"],
-div[data-tokens = "2"] .token_1.token[data-shape = "oval"]{
-  left:9.25%;
+div[data-tokens="2"] .token_1.token_slot[data-shape="circle"],
+div[data-tokens="2"] .token_1.token_slot[data-shape="oval"] {
+  left: 9.25%;
 }
 
-div[data-tokens = "2"] .token_2.token[data-shape = "circle"],
-div[data-tokens = "2"] .token_2.token[data-shape = "oval"]{
-  left:56%;
+div[data-tokens="2"] .token_2.token_slot[data-shape="circle"],
+div[data-tokens="2"] .token_2.token_slot[data-shape="oval"] {
+  left: 56%;
 }
 
-div[data-tokens = "2"] .token_1.token[data-shape = "circle"],
-div[data-tokens = "2"] .token_2.token[data-shape = "circle"]{
-  top:31%;
+div[data-tokens="2"] .token_1.token_slot[data-shape="circle"],
+div[data-tokens="2"] .token_2.token_slot[data-shape="circle"] {
+  top: 31%;
 }
 
-div[data-tokens = "2"] .token_1.token[data-shape = "oval"],
-div[data-tokens = "2"] .token_2.token[data-shape = "oval"]{
+div[data-tokens="2"] .token_1.token_slot[data-shape="oval"],
+div[data-tokens="2"] .token_2.token_slot[data-shape="oval"] {
   top: 22%;
 }
 
-div[data-tokens = "2"] .token_1.token[data-shape = "square"],
-div[data-tokens = "2"] .token_2.token[data-shape = "square"]{
+div[data-tokens="2"] .token_1.token_slot[data-shape="square"],
+div[data-tokens="2"] .token_2.token_slot[data-shape="square"] {
   top: 27%;
 }
-div[data-tokens = "2"] .token_1.token[data-shape = "square"]{
+div[data-tokens="2"] .token_1.token_slot[data-shape="square"] {
   left: 6%;
 }
-div[data-tokens = "2"] .token_2.token[data-shape = "square"]{
+div[data-tokens="2"] .token_2.token_slot[data-shape="square"] {
   left: 52.5%;
 }
 
 /* 2 token configuration, special cases square-circle, square-oval */
 
-div[data-tokens = "2"][data-hassquare] .token_1.token[data-shape = "square"]{
-  left:8%;
+div[data-tokens="2"][data-hassquare] .token_1.token_slot[data-shape="square"] {
+  left: 8%;
 }
-div[data-tokens = "2"][data-hassquare] .token_2.token[data-shape = "circle"],
-div[data-tokens = "2"][data-hassquare] .token_2.token[data-shape = "oval"]{
-  left:57.75%;
+div[data-tokens="2"][data-hassquare] .token_2.token_slot[data-shape="circle"],
+div[data-tokens="2"][data-hassquare] .token_2.token_slot[data-shape="oval"] {
+  left: 57.75%;
 }
 
-/* 3 (circle) token configuration */ 
-div[data-tokens = "3"] .token_1.token[data-shape = "circle"],
-div[data-tokens = "3"] .token_2.token[data-shape = "circle"]{
-  top:50.5%;
+/* 3 (circle) token configuration */
+div[data-tokens="3"] .token_1.token_slot[data-shape="circle"],
+div[data-tokens="3"] .token_2.token_slot[data-shape="circle"] {
+  top: 50.5%;
 }
-div[data-tokens = "3"] .token_1.token[data-shape = "circle"]{
-  left:9.5%;
+div[data-tokens="3"] .token_1.token_slot[data-shape="circle"] {
+  left: 9.5%;
 }
-div[data-tokens = "3"] .token_2.token[data-shape = "circle"]{
-  left:55.5%;
+div[data-tokens="3"] .token_2.token_slot[data-shape="circle"] {
+  left: 55.5%;
 }
-div[data-tokens = "3"] .token_3.token[data-shape = "circle"]{
+div[data-tokens="3"] .token_3.token_slot[data-shape="circle"] {
   top: 11%;
-  left:32.5%;
+  left: 32.5%;
 }
-

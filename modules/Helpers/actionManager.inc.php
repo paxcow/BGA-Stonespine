@@ -2,13 +2,16 @@
 
 namespace Helpers;
 
+use BgaUserException;
 
 trait Undo
 {
-    function undo($unpass = false, $steps = 1)
+    function undo($unpass = false, $steps = 1, $changeStateAfter = null,)
     {
         $player_id = $this->getCurrentPlayerId();
 
+        print_r(func_get_args());
+        
         if ($unpass) {
             $players[] = $player_id;
             //reactivate player
@@ -24,7 +27,9 @@ trait Undo
 
             $dungeon = new \Classes\Dungeon($player_id);
 
-            $handlers = ['state' => &$state, 'hand' => &$hand, 'dungeon' => &$dungeon];
+            $tokens = $this->tokens;
+
+            $handlers = ['state' => &$state, 'hand' => &$hand, 'dungeon' => &$dungeon, 'tokens' => &$tokens];
 
             //calculate how many actions can be retraced
             $nbr_actions = count(\Helpers\ActionManager::getAllActions($player_id));
@@ -33,7 +38,6 @@ trait Undo
 
             //reload pending actions to update volatile game situation
             \Helpers\ActionManager::reloadAllActions($player_id, $handlers);
-
 
             //undo the last $step actions
 
@@ -48,6 +52,11 @@ trait Undo
 
                     \Helpers\ActionManager::removeAction($last_action->action_id);
                 }
+            }
+
+            //go to a different state
+            if ($changeStateAfter) {
+                $this->gamestate->nextState($changeStateAfter);
             }
         }
     }
@@ -228,7 +237,11 @@ class ActionNotifier
     {
         $this->player_id = $player_id;
     }
-
+    public function notifyPlayerAndOthers(string $notifType, string $notifLog, array $notifArgs)
+    {
+        if ($this->player_id) $this->notifyCurrentPlayer("{$notifType}_private", $notifLog, $notifArgs);
+        $this->notifyAllPlayers($notifType, $notifLog, $notifArgs);
+    }
     public function notifyAll(string $notifType, string $notifLog, array $notifArgs)
     {
         $this->notifyAllPlayers($notifType, $notifLog, $notifArgs);

@@ -31,8 +31,9 @@ trait SetupGame
     }
     function populateDecks()
     {
-
-        $this->tokens->initTokenTable($this->token_data);   
+        //populate token reserve
+        $this->tokens->initTokenTable($this->token_data);
+        
         //create decks
 
         //chamber cards
@@ -42,12 +43,13 @@ trait SetupGame
             $cards[] = array("type" => "chamber", "type_arg" => $id, "nbr" => 1);
         }
         $this->chamber_cards->createCards($cards);
+        $this->chamber_cards->shuffle('deck');
 
 
 
-        foreach ($this->chamber_data as $card) {
+        foreach ($this->chamber_data as $id => $card) {
 
-            array_splice($card,0,1);
+            array_splice($card, 0, 1);
 
             $card = array_map("formatForSQLQuery", $card);
             $sql_part = array();
@@ -66,6 +68,7 @@ trait SetupGame
             $cards[] = array("type" => "market", "type_arg" => $id, "nbr" => 1);
         }
         $this->market_cards->createCards($cards);
+        $this->market_cards->shuffle('deck');
 
         foreach ($this->market_data as $id => $card) {
             $card = array_map("formatForSQLQuery", $card);
@@ -86,6 +89,7 @@ trait SetupGame
         }
 
         $this->blueprint_cards->createCards($cards);
+        $this->blueprint_cards->shuffle('deck');
 
         foreach ($this->blueprint_data as $id => $scoring) {
             $scoring_json = json_encode($scoring);
@@ -98,23 +102,24 @@ trait SetupGame
 
         //challenge cards
         $cards = array();
-        $this->challenge_data = range(0,29);
+        $this->challenge_data = range(0, 29);
         foreach ($this->challenge_data as $id => $card) {
             $cards[] = array("type" => "challenge", "type_arg" => $id, "nbr" => 1);
         }
 
-        
+
         $this->challenge_cards->createCards($cards);
+        $this->challenge_cards->shuffle('deck');
 
 
         //goal cards
         $cards = array();
-        $this->goal_data = range(0,7);
+        $this->goal_data = range(0, 7);
         foreach ($this->goal_data as $id => $card) {
             $cards[] = array("type" => "goal", "type_arg" => $id, "nbr" => 1);
         }
         $this->goal_cards->createCards($cards);
-
+        $this->goal_cards->shuffle('deck');
     }
 
     //////////////////////////////////////////////////////////////////
@@ -134,69 +139,16 @@ trait SetupGame
         //draw Goal card
         $this->goal_cards->pickCardForLocation("deck", "board");
 
-        //draw Market cards
-        switch (count($players)) {
-            case 1:
-            case 2:
-            case 3:
-                $nbr = 3;
-                break;
-            case 4:
-                $nbr = 4;
-                break;
-            case 5:
-                $nbr = 5;
-                break;
-        }
-        $this->market_cards->pickCardsForLocation($nbr, "deck", "table");
-
-        //draw Challenge cards
-        switch (count($players)) {
-            case 1:
-            case 2:
-                $nbr = 3;
-                break;
-            case 3:
-                $nbr = 4;
-                break;
-            case 4:
-                $nbr = 5;
-                break;
-            case 5:
-                $nbr = 6;
-                break;
-        }
-        $this->challenge_cards->pickCardsForLocation($nbr, "deck", "table");
-
-        //populate market cards with tokens
-        $market = $this->market_cards->getCardsInLocation("table");
-        foreach ($market as $index => $card) {
-            $market_card = new \Classes\Market($card);
-            $token_shapes = $market_card->getTokenShapes();
-            foreach ($token_shapes as $panel => $shapes) {
-                foreach ($shapes as $pos => $shape) {
-
-                    if ($shape != null) {
-                        $slot = $panel . $pos;
-                        $type = "market";
-                        $location = $index;
-
-                        $this->tokens->pickTokenForLocation($shape,$location,$type,$slot);
-                    }
-                }
-            }
-        }
-
         //distribute blueprints cards
         foreach ($players as $player_id => $player) {
-            $this->blueprint_cards->pickCardForLocation("deck", "player_board", $player_id);
+            $this->blueprint_cards->pickCardForLocation("deck", "hand", $player_id);
         }
 
         //set the entrance doorway marker in each dungeon
         foreach ($players as $player_id => $player) {
 
             //find blueprint card of player
-            $blueprint_id = array_keys($this->blueprint_cards->getCardsInLocation("player_board", $player_id))[0];
+            $blueprint_id = array_keys($this->blueprint_cards->getCardsInLocation("hand", $player_id))[0];
             //get the blueprint details
             $blueprint = new \Classes\Blueprint($blueprint_id);
 
@@ -206,6 +158,4 @@ trait SetupGame
             $dungeon->addChamber(9999, 0, $blueprint->getEntryCol(), true);
         }
     }
-
-    }
-    ?>
+}

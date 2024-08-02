@@ -19,15 +19,15 @@ class TokenManager extends \APP_DbObject
         $flattened_data = [];
 
         foreach ($token_data as $shape => $shape_data) {
-            foreach ($shape_data as $face_pos => $face_data) {
-                $face = $face_data[0];
-                $count = $face_data[1];
+            foreach ($shape_data as $type => $type_data) {
+                $face = $type_data[0];
+                $count = $type_data[1];
 
                 for ($i = 0; $i < $count; $i++) {
                     $flattened_data[] = [
                         'token_shape' => $shape,
                         'token_face' => $face,
-                        'token_type' => $face_pos,
+                        'token_type' => $type,
                         'token_location' => 'reserve',
                         'token_location_type' => 'reserve',
                         'token_location_slot' => null
@@ -57,8 +57,8 @@ class TokenManager extends \APP_DbObject
     }
     
     public function pickTokens($nbr = 1, $shape = null){
-        $sql = "SELECT token_id FROM token";
-        if ($shape) $sql .= " WHERE token_shape = '$shape'";
+        $sql = "SELECT token_id FROM token WHERE token_location = 'reserve'";
+        if ($shape) $sql .= " AND token_shape = '$shape'";
         $sql .= " ORDER BY RAND() LIMIT $nbr";
 
         $tokens =  $this->getObjectListFromDB($sql,true);
@@ -99,17 +99,29 @@ class TokenManager extends \APP_DbObject
         $this->moveTokensToLocation($tokens, $to, $to_type, $to_slot);
     }
 
-    public function getTokensInLocation($location, $location_slot = null){
-        $sql = "SELECT token_id FROM token WHERE token_location = '$location'";
-        if ($location_slot) $sql .= " AND token_location_slot = '$location_slot'";
+    public function getTokensInLocation($location, $location_type, $location_slot_or_section = null, $associative = true){
+        $sql = "SELECT token_id FROM token WHERE token_location = '$location' AND token_location_type = '$location_type'";
+
+        switch (gettype($location_slot_or_section)){
+            case "string":
+                $section = ($location_slot_or_section == "top") ? 1 : (($location_slot_or_section =="bottom") ? 2 : "");
+                $sql .= " AND `token_location_slot` LIKE '$section%'";
+                break;
+            case "number":
+                $sql .= " AND `token_location_slot` = $location_slot_or_section";
+                break;
+            default:
+        } 
 
         $tokens_retrieved = $this->getObjectListFromDB($sql);
+        
         $tokens = array();
 
         foreach ($tokens_retrieved as $token){
             $tokens[$token['token_id']] = new Token($token['token_id']);
+            
         }
-
+        if (!$associative) $tokens = array_values($tokens);
         return $tokens;
         
 

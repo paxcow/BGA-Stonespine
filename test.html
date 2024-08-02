@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slide Element Example</title>
+  <style>
+    .from-container, .to-container {
+      position: relative;
+      overflow: hidden;
+      width: 300px; /* Adjust based on your layout */
+      height: 100px; /* Adjust based on your layout */
+      border: 1px solid #ccc;
+      margin: 20px;
+    }
+
+    .token-element {
+      position: absolute;
+      transition: transform 0.5s ease-in-out;
+      background-color: #f0f0f0;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="from-container" id="from-container">
+    <div id="token1" class="token-element">Token 1</div>
+  </div>
+  <div class="to-container" id="to-container">
+</div>
+
+  <script>
+    class TokenManager {
+      getElement(token_id) {
+        return document.getElementById(token_id);
+      }
+    }
+
+    function moveElement(token_id, to_element, from_element = null, delay = 0) {
+      
+      const tokenManager = new TokenManager();
+      const element = tokenManager.getElement(token_id);
+
+      if (!element) {
+        console.error(`Element with token_id ${token_id} not found.`);
+        return;
+      }
+
+      const fromParent = from_element || element.parentElement;
+
+      const rect = element.getBoundingClientRect();
+      const toRect = to_element.getBoundingClientRect();
+
+      const deltaX = toRect.left - rect.left;
+      const deltaY = toRect.top - rect.top;
+
+      const clone = element.cloneNode(true);
+      document.body.appendChild(clone);
+      clone.style.position = 'absolute';
+      clone.style.left = `${rect.left}px`;
+      clone.style.top = `${rect.top}px`;
+      clone.style.width = `${rect.width}px`;
+      clone.style.height = `${rect.height}px`;
+      clone.style.transform = 'none';
+
+      element.style.visibility = 'hidden';
+
+      setTimeout(() => {
+        clone.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+      }, delay);
+
+      setTimeout(() => {
+        to_element.appendChild(element);
+        element.style.visibility = 'visible';
+        document.body.removeChild(clone);
+      }, delay + 500);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const token_id = 'token1';
+      const to_element = document.getElementById('to-container');
+      const from_element = document.getElementById('from-container');
+      moveElement(token_id, to_element, from_element, 1000); // Move after 1 second delay
+    });
+  </script>
+</body>
+</html>

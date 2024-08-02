@@ -11,10 +11,65 @@ trait Construction
     ///// Setup turn
     function stPrepareYear()
     {
+        $players = $this->loadPlayersBasicInfos();
 
-        $players = array_keys($this->loadPlayersBasicInfos());
-        foreach ($players as $player_id) {
-            $this->chamber_cards->pickcards(5, "deck", $player_id);
+        //draw Market cards
+        switch (count($players)) {
+            case 1:
+            case 2:
+            case 3:
+                $nbr = 3;
+                break;
+            case 4:
+                $nbr = 4;
+                break;
+            case 5:
+                $nbr = 5;
+                break;
+        }
+        $this->market_cards->pickCardsForLocation($nbr, "deck", "table");
+
+        //populate market cards with tokens
+        $market = $this->market_cards->getCardsInLocation("table");
+        foreach ($market as $index => $card) {
+            $market_card = new \Classes\Market($card);
+            $token_shapes = $market_card->getTokenShapes();
+            foreach ($token_shapes as $section => $shapes) {
+                foreach ($shapes as $pos => $shape) {
+
+                    if ($shape != null) {
+                        $slot = $section . $pos;
+                        $type = "market";
+                        $location = $index;
+
+
+                        $this->tokens->pickTokenForLocation($shape, $location, $type, $slot);
+                    }
+                }
+            }
+        }
+
+        //draw Challenge cards
+        switch (count($players)) {
+            case 1:
+            case 2:
+                $nbr = 3;
+                break;
+            case 3:
+                $nbr = 4;
+                break;
+            case 4:
+                $nbr = 5;
+                break;
+            case 5:
+                $nbr = 6;
+                break;
+        }
+        $this->challenge_cards->pickCardsForLocation($nbr, "deck", "table");
+
+        //draw Chamber cards for each player
+        foreach ($players as $player_id => $player) {
+            $this->chamber_cards->pickCards(5, "deck", $player_id);
         }
         $year = self::getGameStateValue('CURRENT_YEAR');
 
@@ -29,6 +84,7 @@ trait Construction
         $transition = "nextChamber";
 
         $year_end = $this->getGameStateValue('CHAMBERS_TO_PLAY') == 0;
+       //**************/ $year_end = true; //debug
         if ($year_end) $transition = "yearEnd";
 
         $this->gamestate->nextState($transition);
@@ -94,14 +150,12 @@ trait Construction
         $notifier = new \Helpers\ActionNotifier($player_id);
         $action->do($notifier);
 
-        if ($this->getPlayersNumber() != 2) {
+        if (count($hand->getHand()) == 1) {
+            $card = $hand->getHand()[0];
+            $auto = true;
+            $this->discardChamberCard($card["id"], $auto);
+        } else if ($this->getPlayersNumber() != 2) {
             $this->gamestate->setPlayerNonMultiactive($player_id, "");
-        } else {
-            if (count($hand->getHand()) == 1) {
-                $card = $hand->getHand()[0];
-                $auto = true;
-                $this->discardChamberCard($card["id"],$auto);
-            }
         }
     }
 

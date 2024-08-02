@@ -49,7 +49,8 @@ class view_stonespinearchitects_stonespinearchitects extends game_view
 
 
         $this->tpl['MY_HAND'] = self::_("My Hand");
-
+        $this->tpl['THIS_PLAYER_ID'] = $current_player_id;
+        $this->tpl['THIS_PLAYER_COLOR'] = $players[$current_player_id]["player_color"];
 
 
         $this->page->begin_block("stonespinearchitects_stonespinearchitects", "OTHER_PLAYERS");
@@ -62,6 +63,7 @@ class view_stonespinearchitects_stonespinearchitects extends game_view
                 array(
                     "PLAYER_ID" => $player_id,
                     "PLAYER_NAME" => $player["player_name"],
+                    "PLAYER_COLOR" => $player["player_color"]
                 )
             );
         }

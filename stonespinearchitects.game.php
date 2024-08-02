@@ -38,6 +38,8 @@ require_once('modules/Classes/Hand.class.php');
 require_once('modules/Helpers/dbManager.inc.php');
 require_once('modules/Helpers/actionManager.inc.php');
 
+require_once('modules/debug.php');
+
 //require_once('modules/deck.game.php');
 //require_once('modules/table.game.php');
 
@@ -48,6 +50,8 @@ class StonespineArchitects extends Table
     use \Helpers\Undo;
     use \States\SetupGame;
     use \States\Construction;
+    use \States\Improvement;
+    use Debug;
 
 
     public $chamber_cards = null;
@@ -124,10 +128,37 @@ class StonespineArchitects extends Table
         $values = array();
         foreach ($players as $player_id => $player) {
             $color = array_shift($default_colors);
-            $values[] = "('" . $player_id . "','$color','" . $player['player_canal'] . "','" . addslashes($player['player_name']) . "','" . addslashes($player['player_avatar']) . "')";
+            $values[] = [
+                $player_id,
+                $color,
+                $player['player_canal'],
+                addslashes($player['player_name']),
+                addslashes($player['player_avatar'])
+            ];
         }
-        $sql .= implode(",", $values);
+
+        $quoted_values = array();
+
+        foreach ($values as $value) {
+            $quoted_values[] = array_map(
+                function ($element) {
+                    return ("'" . $element . "'");
+                },
+                $value
+            );
+        }
+
+        $quoted_values_imploded = array_map(
+            function ($element) {
+                return "(" . implode(",", $element) . ")";
+            },
+            $quoted_values
+        );
+        $sql .= implode(",", $quoted_values_imploded);
+
         self::DbQuery($sql);
+
+
         self::reattributeColorsBasedOnPreferences($players, $gameinfos['player_colors']);
         self::reloadPlayersBasicInfos();
 
@@ -221,14 +252,33 @@ class StonespineArchitects extends Table
 
         foreach ($temp_market_cards as $card) {
             $market = new \Classes\Market($card);
-            $result['table']['market'][] = $market->card;
+            $result['table']['market'][] = $market;
         }
 
         //tokens out
         $result['table']['token'] = array();
+        $result['table']['token']['market'] = array();
+        $result['table']['token']['dungeon'] = array();
+
         foreach ($result['table']['market'] as $market) {
-            $new_tokens =  $this->tokens->getTokensInLocation($market['id']);
-            $result['table']['token'] += $new_tokens;
+            $new_tokens =  $this->tokens->getTokensInLocation($market->id, "market", null, false);
+            $result['table']['token']['market'] = array_merge($result['table']['token']['market'], $new_tokens);
+        }
+
+        $result['table']['token']['player'] = $this->tokens->getTokensInLocation($current_player_id, "player", null,false);
+
+        foreach ($players as $player_id => $player) {
+            foreach ($dungeon[$player_id] as $dungeon_id => $dungeon) {
+                $chambers = $dungeon->getDungeon();
+                foreach ($chambers as $r => $row) {
+                    foreach ($row as $c => $chamber) {
+                        $token = $this->tokens->getTokensInLocation($chamber->id, "chamber", null, false);
+                        if ($token) {
+                            $result['table']['token']['dungeon'][$player_id] = array_merge($result['table']['token']['dungeon'][$player_id], $token);
+                        };
+                    }
+                }
+            }
         }
 
 
@@ -356,12 +406,6 @@ class StonespineArchitects extends Table
 
 
 
-    function argPurchaseableTokens()
-    {
-        $active_player = $this->getActivePlayerId();
-        $gold = \Helpers\Players::getGold($active_player);
-        $market_cards = $this->market_cards->getCardsInLocation("table");
-    }
 
     //////////////////////////////////////////////////////////////////////////////
     //////////// Game state actions

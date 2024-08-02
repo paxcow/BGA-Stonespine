@@ -14,11 +14,11 @@
 var isDebug = window.location.host == "studio.boardgamearena.com" || window.location.hash.indexOf("debug") > -1;
 var debug = isDebug ? console.info.bind(window.console) : function () {};
 
-define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", g_gamethemeurl + "modules/BGA-cards/bga-cards.js"], function (dojo, declare) {
+define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", g_gamethemeurl + "modules/bga-cards/bga-cards.js"], function (dojo, declare) {
   return declare("DungeonManager", null, {
     constructor: function (game) {
       this.game = game;
-      this.manager = game.cards.chamberManager;
+      this.manager = game.cardsManager.chamberManager;
     },
 
     setup: function () {
@@ -27,6 +27,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", g_gamethemeurl + "modu
       let this_player = this.game.player_id;
       for (const player in players) {
         //create the SlotStock for each player to host the chamber cards in a dungeon
+        let player_tag = player == this_player ? "my" : player;
 
         let slotIds = [];
         for (let r = 1; r <= 4; r++) {
@@ -35,14 +36,59 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", g_gamethemeurl + "modu
           }
         }
 
-        let player_tag = player == this_player ? "my" : player;
-
         this.dungeon[player] = new SlotStock(this.manager, document.getElementById(`${player_tag}_dungeon`), {
           gap: 0,
           slotsIds: slotIds,
           slotClasses: ["grid_element"],
         });
         this.dungeon[player].setSelectionMode("none");
+
+        //create passage overlay slots
+
+        const overlay_id = "#" + player_tag + "_passage_overlay";
+        const overlay = document.querySelector(overlay_id);
+
+        const slotWidth = OVAL_TOKEN_WIDTH;
+        const slotHeight = OVAL_TOKEN_WIDTH;
+        const squareWidth = CARD_WIDTH;
+        const squareHeight = CARD_WIDTH;
+        const totalWidth = squareWidth * 4;
+        const totalHeight = squareHeight * 4;
+
+        const xPositions = {
+          left: 0,
+          mid: (squareWidth - slotWidth) / 2,
+          right: squareWidth - slotWidth,
+        };
+        const yPositions = {
+          top: 0,
+          mid: (squareHeight - slotHeight) / 2,
+          bottom: squareHeight - slotHeight,
+        };
+
+        const directions = ["top", "bottom", "left", "right"];
+        for (let r = 0; r <= 3; r++) {
+          for (let c = 0; c <= 3; c++) {
+            for (let direction of directions) {
+              let tempElement = document.createElement("div");
+              tempElement.classList.add("passage-overlay-slot");
+              const xPos = xPositions[direction == "top" || direction == "bottom" ? "mid" : direction];
+              const yPos = yPositions[direction == "left" || direction == "right" ? "mid" : direction];
+              const baseXOffset = c * squareWidth;
+              const baseYOffset = r * squareHeight;
+              const xOffsetPercent = ((baseXOffset + xPos) / totalWidth) * 100;
+              const yOffsetPercent = ((baseYOffset + yPos) / totalHeight) * 100;
+
+              tempElement.style.top = yOffsetPercent + "%";
+              tempElement.style.left = xOffsetPercent + "%";
+              tempElement.dataset.gridSlot = `${r+1}${c+1}`;
+              tempElement.dataset.passage = direction;
+              tempElement.dataset.passageId = `${r+1}${c+1}_${direction}`;
+
+              overlay.appendChild(tempElement);
+            }
+          }
+        }
       }
       //for every slot created by the SlotStock, add class for row and column
       document.querySelectorAll("[data-slot-id]").forEach((element) => {
@@ -61,7 +107,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", g_gamethemeurl + "modu
       //clean tableau
       tableau.querySelectorAll("div").forEach((targetDiv) => {
         if (targetDiv.dataset.hasOwnProperty("slotid")) {
-          targetDiv.classList.remove("open_slot");
+          targetDiv.classList.remove("open-slot");
         }
       });
 
@@ -71,84 +117,105 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", g_gamethemeurl + "modu
 
       slots.col.forEach((column) => {
         const selector = `div[data-slot-id].row${active_row}.col${column}`;
-        let open_slots = tableau.querySelectorAll(selector);
-        open_slots.forEach((element) => {
-          element.classList.add("open_slot");
+        let openSlots = tableau.querySelectorAll(selector);
+        openSlots.forEach((element) => {
+          element.classList.add("open-slot");
         });
       });
     },
 
     init: function () {
       for (const player_id in this.game.gamedatas.players) {
+        let player = this.game.gamedatas.players[player_id];
+        let player_color = player["color"];
         let dungeon = this.game.gamedatas.dungeon[player_id];
         for (let r in dungeon) {
           for (let c in dungeon[r]) {
             if (r > 0) {
-              let card = { id: dungeon[r][c].id, type: dungeon[r][c].type, type_arg:dungeon[r][c].type_arg };
-              let slot = r+c;
-              this.dungeon[player_id].addCard(card,{},{slot: slot});
+              let card = { id: dungeon[r][c].id, type: dungeon[r][c].type, type_arg: dungeon[r][c].type_arg };
+              let slot = r + c;
+              this.dungeon[player_id].addCard(card, {}, { slot: slot });
+            } else {
+              let door = document.createElement("div");
+              door.classList.add("door");
+              door.dataset.color = player_color;
+              door.classList.add("3D");
+
+              let selector = `.dungeon_frame.top[data-player = "${player_id}"] div[data-column = "${c}"]`;
+
+              let targetDiv = document.querySelector(selector);
+              if (!targetDiv) return;
+              targetDiv.appendChild(door);
             }
           }
         }
       }
     },
 
-    placementMode: function (card = false) {
-      let slots = document.querySelectorAll(".open_slot");
+    placementMode: function (cardSelected) {
+      let slots = document.querySelectorAll(".open-slot");
 
-      //clean the grid elements if they had childs from a previous selection
-      slots.forEach((targetDiv) => {        
-        Array.from(targetDiv.childNodes).forEach((child) => {
-          if (child.classList && child.classList.contains("placement_mode")){
-            targetDiv.removeChild(child);
-          } 
-        });
-      });
-    
+      if (cardSelected) {
+        //add clickable to each open slot.
+        clickHandler = function (event) {
+          // event.stopPropagation();
+          //target slot in dungeon
+          const toElement = event.currentTarget;
 
-      if (card) {
-        //a card has been selected
-        let source = this.manager.getCardElement(card);
+          //get the card element
+          const cardElement = gameui.cardsManager.getSelectedChamber(".bga-cards_selected-card");
+          const fromElement = cardElement?.parentNode;
+          //remove existing clickable
+          gameui.removeAllEvents(cardElement);
+          //manually move the card (not using bga-cards)
+          if (!cardElement || !toElement) return;
+          toElement.appendChild(cardElement);
 
-        slots.forEach((targetDiv) => {
-          let temp = source.cloneNode(true);
-          temp.id = `temp_${source.id}_${targetDiv.id}`;
-          temp.classList.add("placement_mode");
-          temp.onclick = (event) => {
+          //add clickable to card (since bga-cards select doesn't work outside the stock element)
+          clickToUnselect = function (event) {
             event.stopPropagation();
-
-            //reset targets
-            this.game.lastCardIdSelected = null;
-            this.game.lastPosXSelected = null;
-            this.game.lastPosYSelected = null;
-
-            //clean previously selected card in dungeon
-            prev_selected = document.querySelectorAll(".placement_selected");
-            if (prev_selected) {
-              prev_selected.forEach((element) => {
-                element.classList.remove("placement_selected");
-              });
-
-              //if this card was already selected, stop after deselecting it
-              nodesArray = Array.from(prev_selected);
-              isSameClicked = nodesArray.includes(temp);
-              if (isSameClicked) {
-                document.getElementById("placeChamber_button").classList.add("disabled");
-
-                return;
-              }
-            }
-            //highlight new card selected in dungeon
-            event.currentTarget.classList.add("placement_selected");
-            this.game.lastCardIdSelected = source.id.match(/chamber-(\d+)/)[1];
-            colMatch = targetDiv.className.match(/col(\d+)/);
-            rowMatch = targetDiv.className.match(/row(\d+)/);
-            this.game.lastPosXSelected = colMatch[1] ? parseInt(colMatch[1]) : null;
-            this.game.lastPosYSelected = rowMatch[1] ? parseInt(rowMatch[1]) : null;
-            document.getElementById("placeChamber_button").classList.remove("disabled");
+            //return card to main stock
+            gameui.dungeonsManager.returnCardToHand(event.currentTarget, true);
           };
-          targetDiv.appendChild(temp);
+          clickToUnselect = clickToUnselect.bind(this);
+          gameui.addEvent(cardElement, "click", clickToUnselect);
+
+          //activate button
+          document.getElementById("placeChamber_button").classList.remove("disabled");
+
+          /*           //add double click to the card
+          doubleClickCardToConfirm = function (event) {
+            event.stopPropagation();
+            gameui.onPlaceChamberClicked(event);
+          };
+          gameui.addEvent(cardElement, "dblclick", doubleClickCardToConfirm); */
+        };
+
+        slots.forEach((slot) => {
+          gameui.addEvent(slot, "click", clickHandler);
         });
+      } else {
+        slots.forEach((slot) => {
+          gameui.removeAllEvents(slot);
+        });
+      }
+    },
+    returnCardToHand: function (cardElement, deselect = false) {
+      //return card to hand
+      const toElement = document.querySelector("#my_chamber_hand");
+      toElement?.appendChild(cardElement);
+
+      if (deselect) {
+        //deselect card
+        const card = gameui.cardsManager.chamberHand[gameui.player_id].getCard(cardElement.id);
+        gameui.cardsManager.chamberHand[gameui.player_id].unselectCard(card);
+      }
+      gameui.removeAllEvents(cardElement);
+    },
+    returnAllCardsToHand: function () {
+      cards = document.querySelector("#my_dungeon_wrapper").querySelectorAll(".chamber-card.actionable");
+      for (card of cards) {
+        this.returnCardToHand(card);
       }
     },
   });
