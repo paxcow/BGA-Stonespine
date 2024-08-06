@@ -155,32 +155,31 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", g_gamethemeurl + "modu
     placementMode: function (cardSelected) {
       let slots = document.querySelectorAll(".open-slot");
 
-      if (cardSelected) {
+      if (cardSelected && slots) {
+
         //add clickable to each open slot.
+
         let clickSlotToPlaceCard = function (event) {
           // event.stopPropagation();
-          //target slot in dungeon
           const toElement = event.currentTarget;
+          const fromElement = cardSelected.parentNode;
 
-          //get the card element
-          const cardElement = this.game.cardsManager.getSelectedChamber(".bga-cards_selected-card");
-          const fromElement = cardElement?.parentNode;
-
-          //remove existing clickable
-          this.game.removeAllEvents(cardElement);
+         // this.game.removeAllEvents(cardElement);
 
           //manually move the card (not using bga-cards)
-          if (!cardElement || !toElement) return;
-          this.game.cardsManager.moveCardNotStock(cardElement,toElement);
+          if (!cardSelected || !toElement) {
+            console.log ("No card to move, or nowhere to move it to.");
+            return;
+          }          
+          this.game.cardsManager.moveCardNotStock(cardSelected,toElement);
 
           //add clickable to card (since bga-cards select doesn't work outside the stock element)
           clickToUnselect = function (event) {
             event.stopPropagation();
-            //return card to main stock
             this.game.dungeonsManager.returnCardToHand(event.currentTarget, true);
           };
           clickToUnselect = clickToUnselect.bind(this);
-          this.game.addEvent(cardElement, "click", clickToUnselect);
+          this.game.addEvent(cardSelected, "click", clickToUnselect);
 
           //activate button
           document.getElementById("placeChamber_button").classList.remove("disabled");
@@ -199,7 +198,10 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", g_gamethemeurl + "modu
     returnCardToHand: function (cardElement, deselect = false) {
       //return card to hand
       const toElement = document.querySelector("#my_chamber_hand");
-      if (!cardElement || !toElement) return;
+      if (!cardElement || !toElement) {
+        console.log ("No card to move, or nowhere to move it to.");
+        return;
+      }
       this.game.cardsManager.moveCardNotStock(cardElement,toElement);
 
       if (deselect) {

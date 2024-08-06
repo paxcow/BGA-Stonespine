@@ -2,23 +2,49 @@ var isDebug = window.location.host == "studio.boardgamearena.com" || window.loca
 var debug = isDebug ? console.info.bind(window.console) : function () {};
 
 const eventHandlers = new Map();
+const allowMultipleHandlers = false;
+const swapHandlers = true;
 
 define(["dojo/_base/declare", "dojo/_base/lang"], function (declare, lang) {
   var ClickableTrait = declare(null, {
     addEvent: function (element, eventType, callable) {
+      
       if (!eventHandlers.has(element)) {
         eventHandlers.set(element, new Map());
       }
-
       const eventMap = eventHandlers.get(element);
 
       if (!eventMap.has(eventType)) {
         eventMap.set(eventType, new Set());
       }
+      const handlers = eventMap.get(eventType);
 
+      // Check if allowMultipleHandlers is false
+      if (!allowMultipleHandlers) {
+        if (handlers.size > 0) {
+          if (swapHandlers) {
+            // Remove existing handlers
+            handlers.forEach((handler) => {
+              element.removeEventListener(eventType, handler);
+            });
+            handlers.clear(); // Clear existing handlers
+
+            // Add the new handler
+            const handler = (event) => callable(event);
+            element.addEventListener(eventType, handler);
+            handlers.add(handler);
+            return true; // Handler swapped successfully
+          } else {
+            return false; // Ignore new handler
+          }
+        }
+      }
+
+      // If allowMultipleHandlers is true or no existing handlers were found
       const handler = (event) => callable(event);
       element.addEventListener(eventType, handler);
-      eventMap.get(eventType).add(handler);
+      handlers.add(handler);
+      return true; // Handler added successfully
     },
 
     removeEvent: function (element, eventType, callable) {
@@ -107,7 +133,7 @@ define(["dojo/_base/declare", "dojo/_base/lang"], function (declare, lang) {
       return select ? element : false;
     },
     selectContainerOnly: function (element, options = {}){
-        
+
       options = Object.assign(
         {
           forceSelected: null,

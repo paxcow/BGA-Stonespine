@@ -1,4 +1,10 @@
-define([], function () {
+define([], /**
+ * Description placeholder
+ *
+ * @returns {{ getPositionInSprite: (card_index: number, sprite_rows: number, sprite_columns: number) => string; normalizeBackgroundSize: (type: any) => string; getPositionInTokenSprite: (token: { ...; }, face?: string) => string; ... 4 more ...; isReadOnly: () => any; }}
+ */
+
+function () {
   return {
     /**
      *
@@ -152,13 +158,30 @@ define([], function () {
       }
       return position;
     },
+    /**
+     *
+     *
+     * @param {Element} element
+     * @return {Boolean} true if the argument is a DOM element
+     */
     isElement: function (element) {
       return element instanceof Element;
     },
-    rearrangeAllChildrenInContainer: function(container,gap = 0, usableArea =1){
+    rearrangeAllChildrenInContainer: function (container, gap = 0, usableArea = 1) {
       children = Array.form(container.children);
-      rearrangeElementsInContainer(children, container, gap, usableArea)
+      rearrangeElementsInContainer(children, container, gap, usableArea);
     },
+    /**
+     *
+     *
+     * @param {element[]} elements
+     * @param {element} container
+     * @param {number} [gap=0]
+     * @param {number} [usableArea=1]
+     * @param {element[]} [elementsAlreadyPresent=[]]
+     * 
+     * Randomly positions elements in container leaving some gap among them (and respecting also elements already presents, that won't be moved)
+     */
     rearrangeElementsInContainer: function (elements, container, gap = 0, usableArea = 1, elementsAlreadyPresent = []) {
       if (!Array.isArray(elements)) elements = Array.from(elements);
       const containerRect = container.getBoundingClientRect();
@@ -230,14 +253,22 @@ define([], function () {
           if (success) {
             return;
           }
-
-
         }
 
         console.warn("Max attempts reached, elements may overlap.");
       }
 
       placeAllElements(elements, elementsAlreadyPresent);
+    },
+  
+    /**
+     *
+     *
+     * @return {boolean} true for spectators, instant replay (during game), archive mode (after game end)
+
+     */
+    isReadOnly: function () {
+      return this.isSpectator || typeof g_replayFrom != "undefined" || g_archive_mode;
     },
   };
 });

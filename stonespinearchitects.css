@@ -152,7 +152,7 @@ div {
   }
 }
 
-.actionable {
+#my_chamber_hand > .actionable {
   animation: highlight-actionable 2s infinite;
 }
 [data-selected] .actionable {
@@ -165,8 +165,10 @@ div {
 /*********************************/
 
 #my_hand_wrapper {
-  width: calc(var(--card_width) * 5.5);
+  /* width: calc(var(--card_width) * 5.5); */
 }
+
+
 
 .player_area,
 .player_hand_chambers,
@@ -174,6 +176,7 @@ div {
 .market_wrapper,
 .challenge_wrapper {
   align-items: flex-start;
+  justify-content: center;;
 }
 
 #my_token_staging {
@@ -219,7 +222,7 @@ div {
 #board {
   width: var(--board_width);
   height: var(--board_height);
-  background: url(img/resized_board.png);
+  background: url(img/board1024.png);
   background-size: contain;
   position: relative;
 }

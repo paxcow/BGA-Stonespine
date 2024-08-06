@@ -243,9 +243,8 @@ define([
           this.cardsManager.chamberHand[this.player_id].setSelectionMode("single");
           this.cardsManager.chamberHand[this.player_id].onSelectionChange = (selection, lastChange) => {
             this.dungeonsManager.returnAllCardsToHand();
-            const card = selection.lenght ? selection[0] : lastChange;
-            const cardElement = this.cardsManager.chamberManager.getCardElement(card);
-            this.cardsManager.selectChamber(cardElement);
+
+            const cardElement = selection.length ? this.cardsManager.chamberManager.getCardElement(selection[0]) : false;
             this.dungeonsManager.placementMode(cardElement);
             document.getElementById("placeChamber_button").classList.add("disabled");
           };
@@ -548,10 +547,8 @@ define([
         let player_id = notif.args.player_id;
         let card = notif.args.card;
         let cardElement = this.cardsManager.chamberManager.getCardElement(card);
-        let anim = { fromStock: origin_stock };
-        let settings = {};
-        this.dungeonsManager.dungeon[player_id].addCard(card, anim, settings);
 
+        this.dungeonsManager.dungeon[player_id].addCard(card, {}, {slot:position});
 
         //remove any clickable from card placed
         this.removeAllEvents(cardElement);
