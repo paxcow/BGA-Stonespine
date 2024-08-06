@@ -277,6 +277,12 @@ define([
         this.discardChallenge = new VoidStock(this.challengeManager, document.getElementById("challenge_deck"));
       }
     },
+
+    moveCardNotStock: function(cardElement, toElement){
+      let animation = new BgaSlideAnimation({element: cardElement});
+      this.game.animationsManager.attachWithAnimation(animation, toElement);
+    },
+
     ///////////////////////////////////////////
     //// Chamber Cards specific functions: ////
     ///////////////////////////////////////////
@@ -285,21 +291,14 @@ define([
       return document.querySelector(selectedClass);
     },
 
-    selectChamberCard: function (element) {
+    selectChamber: function (element) {
       options = {
         selectedClass: "card-selected",
         containersToFlag: [document.querySelector("#my_hand_wrapper")],
         containerData: "card-selected",
       };
 
-      options.callable = function (element) {
-        if (!element.classList.contains("card-selected")) {
-          const card = gameui.cardsManager.chamberHand[gameui.player_id].getCard(element.id);
-          gameui.cardsManager.chamberHand[gameui.player_id].addCard(card, {}, { visible: true });
-        }
-      };
-
-      return gameui.select(element, options);
+     return this.game.select(element, options);
     },
 
     makeSlotActionable: function (cardId, lists, highlight = null) {
@@ -361,22 +360,22 @@ define([
       // add clickable to the slots
       if (!slotsNodeList) return;
 
-      let clickHandler = function (event) {
+      let clickSlotToPlaceToken = function (event) {
         event.stopPropagation();
         let slotElement = event.currentTarget;
         let tokenElement = document.querySelector(".token-staged.token-selected");
         if (tokenElement) {
           if (dungeon.dataset.selected == "passage") {
-            gameui.tokenManager.placePassageOnOverlay(tokenElement, slotElement,gameui.player_id);
+            this.game.tokenManager.placePassageOnOverlay(tokenElement, slotElement,this.game.player_id,true);
           } else {
-            gameui.tokenManager.placeTo(tokenElement, slotElement);
+            this.game.tokenManager.placeTo(tokenElement, slotElement,true);
           }
           tokenElement.classList.add("placed");
         }
       };
-
+      clickSlotToPlaceToken = clickSlotToPlaceToken.bind(this);
       for (slot of slotsNodeList) {
-        gameui.addEvent(slot, "click", clickHandler);
+        this.game.addEvent(slot, "click", clickSlotToPlaceToken);
       }
     },
   });

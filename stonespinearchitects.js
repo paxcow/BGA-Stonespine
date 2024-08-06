@@ -55,12 +55,16 @@ define([
   g_gamethemeurl + "modules/JS/market.manager.js",
   g_gamethemeurl + "modules/JS/token.manager.js",
   g_gamethemeurl + "modules/JS/marker.manager.js",
+  g_gamethemeurl + "modules/bga-zoom/bga-zoom.js",
+  g_gamethemeurl + "modules/bga-animations/bga-animations.js",
 ], function (
   //prettier-ignore
   dojo,
   declare,
   utils,
-  UIAndClickable
+  UIAndClickable,
+  bgaZoom,
+  bgaAnimations
 ) {
   return declare(
     "bgagame.stonespinearchitects",
@@ -73,68 +77,55 @@ define([
     {
       constructor: function () {
         console.log("stonespinearchitects constructor");
+        // create the zoom manager
+        this.zoomManager = new ZoomManager({
+          element: document.getElementById("main_wrapper"),
+          localStorageZoomKey: "stonespine-zoom",
+          zoomControls: {
+            color: "white",
+          },
+        });
 
-        // Here, you can init the global variables of your user interface
-        // Example:
-        // this.myGlobalValue = 0;
-
-        ///GLOBALS FOR POSITIONING OF CHAMBER CARDS IN THE DUNGEON
-        this.lastCardIdSelected = null;
-        this.lastPosXSelected = null;
-        this.lastPosYSelected = null;
+        this.animationsManager = new AnimationManager(this);
+        this.cardsManager = new CardsManager(this);
+        this.dungeonsManager = new DungeonManager(this);
+        this.goldMarkers = new Marker("gold");
+        this.priorityMarkers = new Marker("priority");
+        this.tokenManager = new TokenManager(this);
       },
-
-      /*
-            setup:
-            
-            This method must set up the game user interface according to current game situation specified
-            in parameters.
-            
-            The method is called each time the game interface is displayed to a player, ie:
-            _ when the game starts
-            _ when a player refreshes the game page (F5)
-            
-            "gamedatas" argument contains all datas retrieved by your "getAllDatas" PHP method.
-        */
 
       setup: function (gamedatas) {
         console.log("Starting game setup");
         console.dir(gamedatas);
+
         // Setting up player boards
         for (var player_id in gamedatas.players) {
           var player = gamedatas.players[player_id];
-
-          // TODO: Setting up players boards if needed
         }
 
-        //Creating the card managers
-        this.cardsManager = new CardsManager(this);
+        //Initialize cards
         this.cardsManager.initHands(this.gamedatas.hand);
         this.cardsManager.initTable(this.gamedatas.table);
 
-        //Create the dungeons and populate with current
-        this.dungeonsManager = new DungeonManager(this);
+        //Initialize dungeons
         this.dungeonsManager.setup();
         this.dungeonsManager.init();
 
-        //create the market
+        //Initialize markets  /// TODO: merge in normal Card manager
         this.market = new MarketManager();
         market_card_ids = this.gamedatas.table.market.map((obj) => obj.id);
         this.market.addCards(market_card_ids);
 
-        //create markers and position them
+        //Initialize markers
+        this.goldMarkers.initMarkers(this.gamedatas["players"]);
+        this.priorityMarkers.initMarkers(this.gamedatas["players"]);
 
+        //Setup scoreboard and central table area
+
+        //initialize goal card
         this.initGoalCard(this.gamedatas.table.goal);
 
-        this.goldMarkers = new Marker(this.gamedatas["players"], "gold");
-        this.goldMarkers.initMarkers();
-        this.priorityMarkers = new Marker(this.gamedatas["players"], "priority");
-        this.priorityMarkers.initMarkers();
-
-        //Setup scoreboeard and central table area
-
         //Create token piles
-
         const shapes = { oval: 5, square: 6, circle: 5 };
         for (const shape in shapes) {
           let targetDiv = document.getElementById(`${shape}_token_pile`);
@@ -173,7 +164,6 @@ define([
           return;
         }
         //place tokens on market cards
-        this.tokenManager = new TokenManager();
 
         this.tokenManager.addTokens(this.gamedatas.table.token.market);
         this.tokenManager.addTokens(this.gamedatas.table.token.player);
@@ -253,9 +243,11 @@ define([
           this.cardsManager.chamberHand[this.player_id].setSelectionMode("single");
           this.cardsManager.chamberHand[this.player_id].onSelectionChange = (selection, lastChange) => {
             this.dungeonsManager.returnAllCardsToHand();
-            const cardElement = selection[0] ? this.cardsManager.chamberManager.getCardElement(selection[0]) : false;
-            document.getElementById("placeChamber_button").classList.add("disabled");
+            const card = selection.lenght ? selection[0] : lastChange;
+            const cardElement = this.cardsManager.chamberManager.getCardElement(card);
+            this.cardsManager.selectChamber(cardElement);
             this.dungeonsManager.placementMode(cardElement);
+            document.getElementById("placeChamber_button").classList.add("disabled");
           };
 
           //highlights open dungeon slots
@@ -278,7 +270,7 @@ define([
             this.market.highlightSection(id, "bottom", highlight_bottom);
           }
         });
-        setTimeout(() => document.querySelector("#market_wrapper").scrollIntoView({ behavior: "smooth", block: "center", inline: "center" }), 250);
+        //setTimeout(() => document.querySelector("#market_wrapper").scrollIntoView({ behavior: "smooth", block: "center", inline: "center" }), 250);
       },
       onEnteringState_playerPlaceToken: function (args) {
         debug("args: ", args);
@@ -293,15 +285,13 @@ define([
           openSlots = slotsToHighlight[cardId];
           this.cardsManager.makeSlotActionable(cardId, openSlots, true);
         }
-
+        debugger;
         //add clickable to tokens in the active player staging area
         let tokens = document.querySelector("#my_token_staging").children;
 
         let clickHandler = function (event) {
           event.stopPropagation();
-          const target = event.currentTarget;
-          const options = this.tokenManager.getSelectTokenOptions(target);
-          this.select(target, options);
+          this.tokenManager.selectToken(event.currentTarget);
           this.cardsManager.activateSlots();
         };
         clickHandler = clickHandler.bind(this);
@@ -397,7 +387,6 @@ define([
       },
 
       onPlaceChamberClicked: function (evt) {
-        debugger;
         const cardSelected = this.cardsManager.getSelectedChamber();
 
         if (!cardSelected) {
@@ -405,12 +394,12 @@ define([
           return;
         }
         const slot = cardSelected.parentElement.dataset.slotId;
-        const [type, id] = cardSelected.id.split("-")
+        const [type, id] = cardSelected.id.split("-");
         const cardObj = {
           card: id,
           row: slot.charAt(0),
           col: slot.charAt(1),
-        }
+        };
         this.bgaPerformAction("placeChamberCard", cardObj);
       },
 
@@ -522,7 +511,7 @@ define([
         notification_to_register.push({ name: "card_picked" });
         notification_to_register.push({ name: "animate_gold_received" });
         notification_to_register.push({ name: "gold_received" });
-        notification_to_register.push({ name: "tokens_purchased", condition: (notif) => notif.args.player_id == this.player_id });
+        notification_to_register.push({ name: "tokens_purchased", condition: (notif) => notif.args.player_id == this.player_id, delay: 1000 });
         notification_to_register.push({ name: "tokens_returned" });
 
         notification_to_register.forEach((notif) => {
@@ -535,10 +524,13 @@ define([
           this.notifqueue.setSynchronous(notif.name, notif.delay);
 
           if (notif.condition !== undefined) {
-            this.notifqueue.setIgnoreNotificationCheck(notif.name + "_private", notif.condition);
-            if (!this.hasOwnProperty(methodNamePrivate) && this.hasOwnProperty(methodName)) {
+            debugger;
+            if (!(methodNamePrivate in this) && methodName in this) {
               this[methodNamePrivate] = this[methodName];
             }
+            dojo.subscribe(notif.name + "_private", this, methodNamePrivate);
+            this.notifqueue.setSynchronous(notif.name + "_private", notif.delay);
+            this.notifqueue.setIgnoreNotificationCheck(notif.name, notif.condition);
           }
         });
       },
@@ -556,14 +548,10 @@ define([
         let player_id = notif.args.player_id;
         let card = notif.args.card;
         let cardElement = this.cardsManager.chamberManager.getCardElement(card);
+        let anim = { fromStock: origin_stock };
+        let settings = {};
+        this.dungeonsManager.dungeon[player_id].addCard(card, anim, settings);
 
-        //remove class from hand container and dungeon
-        targetDivs = document.querySelectorAll(".card-selected");
-        if (targetDivs) {
-          targetDivs.forEach((div) => {
-            div.classList.remove("card-selected");
-          });
-        }
 
         //remove any clickable from card placed
         this.removeAllEvents(cardElement);
@@ -571,7 +559,7 @@ define([
         //remove clickable from every open slot
         this.dungeonsManager.placementMode(false);
 
-         //remove slot from open slots
+        //remove slot from open slots
         document.querySelector(".row" + position.charAt(0) + ".col" + position.charAt(1)).classList.remove("open-slot");
 
         //set selection mode none for cards in Hand
@@ -638,6 +626,7 @@ define([
       },
 
       notif_reveal_cards_placed: function (notif) {
+        debugger;
         debug(`notification: ${notif.type}`, notif);
         let card = notif.args.card;
         let position = notif.args.position;
@@ -693,7 +682,7 @@ define([
         this.goldMarkers.moveMarker(player_id, gold);
       },
 
-      notif_tokens_purchased: function (notif) {
+      notif_tokens_purchased: async function (notif) {
         debug(`notification: ${notif.type}`, notif);
         tokens_to_move = notif.args.tokens;
         gold = notif.args.gold;
@@ -704,19 +693,22 @@ define([
         tokenStagingDiv = document.querySelector(`#${player_qualifier}_token_staging`);
 
         //move tokens
-        for (let token_id in tokens_to_move) {
-          this.tokenManager.placeToById(token_id, tokenStagingDiv);
+
+        for (const token_id in tokens_to_move) {
+          const tokenElement = this.tokenManager.getDiv(token_id);
+          await this.tokenManager.placeToById(token_id, tokenStagingDiv, true);
+          console.log(`token ${token_id} moved`);
         }
         //rearrange
         tokensMoved = tokenStagingDiv.children;
         for (tokenMoved of tokensMoved) {
           tokenMoved.classList.add("token-staged");
         }
-
         this.tokenManager.distributeAllTokensInContainer(tokenStagingDiv);
+        document.querySelector("#my_token_staging").scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
 
         //take money away
-        debugger;
+
         this.goldMarkers.moveMarker(player_id, -gold);
 
         //disable clickable and purchasable from other tokens
@@ -732,17 +724,17 @@ define([
         const player_id = notif.args.player_id;
 
         //return tokens:
-        for (let tokenIndex in tokens_to_move){
+        for (let tokenIndex in tokens_to_move) {
           const token = tokens_to_move[tokenIndex];
           const tokenElement = this.tokenManager.getDiv(token.token_id);
           const toElement = this.market.getSlotDiv(token.token_location, token.token_location_slot);
+          this.removeAllEvents(tokenElement);
           this.tokenManager.placeTo(tokenElement, toElement);
         }
 
         //return gold:
-        debugger;
-        this.goldMarkers.moveMarker(player_id, gold);
 
+        this.goldMarkers.moveMarker(player_id, gold);
       },
 
       // Utilities

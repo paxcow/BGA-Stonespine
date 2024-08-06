@@ -107,6 +107,7 @@ define(["dojo/_base/declare", "dojo/_base/lang"], function (declare, lang) {
       return select ? element : false;
     },
     selectContainerOnly: function (element, options = {}){
+        
       options = Object.assign(
         {
           forceSelected: null,
@@ -116,7 +117,8 @@ define(["dojo/_base/declare", "dojo/_base/lang"], function (declare, lang) {
         },
         options
       );
-      let isAlreadySelected = element.classList.contains(options.selectedClass);
+      
+      let isAlreadySelected = element?.classList.contains(options.selectedClass);
       let select = options.forceSelected ?? !isAlreadySelected;
       if (select == true) {
         options.containersToFlag.forEach((container) => container.dataset.selected = options.containerData);

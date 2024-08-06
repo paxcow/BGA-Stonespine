@@ -105,7 +105,6 @@ class action_stonespinearchitects extends APP_GameAction
     {
         self::trace("*********  UNDO!! ***************");
         self::setAjaxMode();
-        print_r("undo!");
 
         // Retrieve arguments
         // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method

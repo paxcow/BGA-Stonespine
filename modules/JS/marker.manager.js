@@ -1,11 +1,16 @@
 define(["dojo", "dojo/_base/declare", g_gamethemeurl + "modules/JS/utils.js", "ebg/core/gamegui", "ebg/counter"], function (dojo, declare, utils) {
   return declare("Marker", null, {
-    constructor: function (players, type) {
+    constructor: function (type) {
       this.type = type;
-      this.players = players;
       this.markers = {};
     },
-    initMarkers: function (style = "3D") {
+
+    setPlayers: function(players){
+      this.players = players;
+
+    },
+    initMarkers: function (players,style = "3D") {
+      this.setPlayers(players);
       for (let player_id in this.players) {
         player = this.players[player_id];
         const colorX = {

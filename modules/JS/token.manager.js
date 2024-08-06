@@ -1,7 +1,8 @@
 define(["dojo", "dojo/_base/declare", g_gamethemeurl + "modules/JS/utils.js", "ebg/core/gamegui", "ebg/counter"], function (dojo, declare, utils) {
   return declare("TokenManager", null, {
-    constructor: function () {
+    constructor: function (game) {
       this.tokens = [];
+      this.game = game;
     },
 
     addTokens: function (tokens) {
@@ -33,18 +34,24 @@ define(["dojo", "dojo/_base/declare", g_gamethemeurl + "modules/JS/utils.js", "e
 
       if (spreadOut && tokenCreated.length > 0) this.distributeTokensInParent(tokenCreated);
     },
-    placeTo: function (tokenElement, toElement) {
+    placeTo: function (tokenElement, toElement, withAnimation = false) {
       tokenElement.style.position = "relative";
       tokenElement.style.top = "";
       tokenElement.style.left = "";
-      toElement.appendChild(tokenElement);
+      if (!withAnimation) {
+        toElement.appendChild(tokenElement);
+        return new Promise((resolve, reject) => {});
+      } else {
+        let animation = new BgaSlideAnimation({ element: tokenElement, duration: 150 });
+        return this.game.animationsManager.attachWithAnimation(animation, toElement);
+      }
     },
-    placeToById: function (tokenId, toElement) {
+    placeToById: function (tokenId, toElement, withAnimation = false) {
       let tokenElement = this.getDiv(tokenId);
       if (!tokenElement) {
         debug(`The token ${tokenId} does not exist in the document`);
       }
-      this.placeTo(tokenElement, toElement);
+      return this.placeTo(tokenElement, toElement, withAnimation);
     },
 
     createDiv: function () {
@@ -86,27 +93,31 @@ define(["dojo", "dojo/_base/declare", g_gamethemeurl + "modules/JS/utils.js", "e
       return tokensStaged;
     },
 
-    getSelectTokenOptions: function (element = null) {
-      options = {};
+    selectToken: function (element = null) {
+      let containersToFlag = [];
+      containersToFlag.push(element.parentElement);
+      containersToFlag.push(document.querySelector("#my_dungeon_wrapper"));
 
-      options.selectedClass = "token-selected";
-      options.containersToFlag = [];
-      options.containersToFlag.push(element.parentElement);
-      options.containersToFlag.push(document.querySelector("#my_dungeon_wrapper"));
-      options.containerData = element.dataset.type;
+      options = {
+        selectedClass: "token-selected",
+        containersToFlag: containersToFlag,
+        containerData: element.dataset.type,
+      };
+
       options.callable = function (element) {
         if (!element.classList.contains("token-selected")) {
           toElement = document.querySelector("#my_token_staging");
-          this.placeTo(element, toElement);
-          this.distributeTokensInParent([element]);
+          if (element.parentElement != toElement) {
+            this.placeTo(element, toElement, false);
+            this.distributeTokensInParent([element]);
+          }
         }
       };
       options.callable = options.callable.bind(this);
-      return options;
+      this.game.select(element, options);
     },
 
-    placePassageOnOverlay: function (passageElement, slotElement, player_id) {
-      debugger;
+    placePassageOnOverlay: function (passageElement, slotElement, player_id) { //TODO : remove player_id from arguments?
       //get slot clicked (top, bottom, left, right)
       const direction = slotElement.dataset.passage;
 
@@ -115,16 +126,14 @@ define(["dojo", "dojo/_base/declare", g_gamethemeurl + "modules/JS/utils.js", "e
       const slotId = card.dataset.slotId;
 
       let overlaySlot = `${slotId}_${direction}`;
- 
-      player_tag = player_id == gameui.player_id ? "my":player_id;
+
+      player_tag = player_id == this.game.player_id ? "my" : player_id;
       const overlay = document.querySelector(`#${player_tag}_passage_overlay`);
       const targetElement = overlay.querySelector(`[data-passage-id = "${overlaySlot}"]`);
 
-      this.placeTo(passageElement, targetElement);
+      this.placeTo(passageElement, targetElement, true);
 
       return overlaySlot;
-
-
     },
   });
 });

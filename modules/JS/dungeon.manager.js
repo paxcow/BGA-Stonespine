@@ -81,9 +81,9 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", g_gamethemeurl + "modu
 
               tempElement.style.top = yOffsetPercent + "%";
               tempElement.style.left = xOffsetPercent + "%";
-              tempElement.dataset.gridSlot = `${r+1}${c+1}`;
+              tempElement.dataset.gridSlot = `${r + 1}${c + 1}`;
               tempElement.dataset.passage = direction;
-              tempElement.dataset.passageId = `${r+1}${c+1}_${direction}`;
+              tempElement.dataset.passageId = `${r + 1}${c + 1}_${direction}`;
 
               overlay.appendChild(tempElement);
             }
@@ -157,60 +157,57 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", g_gamethemeurl + "modu
 
       if (cardSelected) {
         //add clickable to each open slot.
-        clickHandler = function (event) {
+        let clickSlotToPlaceCard = function (event) {
           // event.stopPropagation();
           //target slot in dungeon
           const toElement = event.currentTarget;
 
           //get the card element
-          const cardElement = gameui.cardsManager.getSelectedChamber(".bga-cards_selected-card");
+          const cardElement = this.game.cardsManager.getSelectedChamber(".bga-cards_selected-card");
           const fromElement = cardElement?.parentNode;
+
           //remove existing clickable
-          gameui.removeAllEvents(cardElement);
+          this.game.removeAllEvents(cardElement);
+
           //manually move the card (not using bga-cards)
           if (!cardElement || !toElement) return;
-          toElement.appendChild(cardElement);
+          this.game.cardsManager.moveCardNotStock(cardElement,toElement);
 
           //add clickable to card (since bga-cards select doesn't work outside the stock element)
           clickToUnselect = function (event) {
             event.stopPropagation();
             //return card to main stock
-            gameui.dungeonsManager.returnCardToHand(event.currentTarget, true);
+            this.game.dungeonsManager.returnCardToHand(event.currentTarget, true);
           };
           clickToUnselect = clickToUnselect.bind(this);
-          gameui.addEvent(cardElement, "click", clickToUnselect);
+          this.game.addEvent(cardElement, "click", clickToUnselect);
 
           //activate button
           document.getElementById("placeChamber_button").classList.remove("disabled");
 
-          /*           //add double click to the card
-          doubleClickCardToConfirm = function (event) {
-            event.stopPropagation();
-            gameui.onPlaceChamberClicked(event);
-          };
-          gameui.addEvent(cardElement, "dblclick", doubleClickCardToConfirm); */
         };
-
+        clickSlotToPlaceCard = clickSlotToPlaceCard.bind(this);
         slots.forEach((slot) => {
-          gameui.addEvent(slot, "click", clickHandler);
+          this.game.addEvent(slot, "click", clickSlotToPlaceCard);
         });
       } else {
         slots.forEach((slot) => {
-          gameui.removeAllEvents(slot);
+          this.game.removeAllEvents(slot);
         });
       }
     },
     returnCardToHand: function (cardElement, deselect = false) {
       //return card to hand
       const toElement = document.querySelector("#my_chamber_hand");
-      toElement?.appendChild(cardElement);
+      if (!cardElement || !toElement) return;
+      this.game.cardsManager.moveCardNotStock(cardElement,toElement);
 
       if (deselect) {
         //deselect card
-        const card = gameui.cardsManager.chamberHand[gameui.player_id].getCard(cardElement.id);
-        gameui.cardsManager.chamberHand[gameui.player_id].unselectCard(card);
+        const card = this.game.cardsManager.chamberHand[this.game.player_id].getCard(cardElement.id);
+        this.game.cardsManager.chamberHand[this.game.player_id].unselectCard(card);
       }
-      gameui.removeAllEvents(cardElement);
+      this.game.removeAllEvents(cardElement);
     },
     returnAllCardsToHand: function () {
       cards = document.querySelector("#my_dungeon_wrapper").querySelectorAll(".chamber-card.actionable");

@@ -148,7 +148,8 @@ class PurchaseTokenActionCommand extends \Helpers\ActionCommand
 
         $notifier->notifyPlayerAndOthers(
             "tokens_purchased",
-            clienttranslate('${player_name} paid ${gold} gold to purchase tokens.'),
+            ["private" => clienttranslate('${you} paid ${gold} gold to purchase tokens.'), 
+            "public" => clienttranslate('${player_name} paid ${gold} gold to purchase tokens.')],
             array(
                 "player_id" => $this->player_id,
                 "player_name" => $this->player_name,
@@ -174,7 +175,7 @@ class PurchaseTokenActionCommand extends \Helpers\ActionCommand
 
         $notifier->notifyPlayerAndOthers(
             "tokens_returned",
-            clienttranslate('${player_name} returns token(s).'),
+            clienttranslate('${player_name} returned token(s).'),
             array(
                 "player_id" => $this->player_id,
                 "player_name" => $this->player_name,

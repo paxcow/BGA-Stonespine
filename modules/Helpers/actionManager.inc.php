@@ -10,7 +10,6 @@ trait Undo
     {
         $player_id = $this->getCurrentPlayerId();
 
-        print_r(func_get_args());
         
         if ($unpass) {
             $players[] = $player_id;
@@ -237,10 +236,17 @@ class ActionNotifier
     {
         $this->player_id = $player_id;
     }
-    public function notifyPlayerAndOthers(string $notifType, string $notifLog, array $notifArgs)
+    public function notifyPlayerAndOthers(string $notifType, array|string $notifLog, array $notifArgs)
     {
-        if ($this->player_id) $this->notifyCurrentPlayer("{$notifType}_private", $notifLog, $notifArgs);
-        $this->notifyAllPlayers($notifType, $notifLog, $notifArgs);
+        if (is_array($notifLog)){
+            $notifLogPublic = $notifLog["public"];
+            $notifLogPrivate= $notifLog["private"];
+        } else {
+            $notifLogPublic  =$notifLog;
+            $notifLogPrivate = $notifLog;
+        }
+        if ($this->player_id) $this->notifyCurrentPlayer("{$notifType}_private", $notifLogPrivate, $notifArgs);
+        $this->notifyAllPlayers($notifType, $notifLogPublic, $notifArgs);
     }
     public function notifyAll(string $notifType, string $notifLog, array $notifArgs)
     {
