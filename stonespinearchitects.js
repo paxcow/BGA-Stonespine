@@ -242,16 +242,18 @@ define([
           //add clickable to cards in hand
           this.cardsManager.chamberHand[this.player_id].setSelectionMode("single");
           this.cardsManager.chamberHand[this.player_id].onSelectionChange = (selection, lastChange) => {
-            this.dungeonsManager.returnAllCardsToHand();
+            if (selection[0]) {
+              this.dungeonsManager.returnAllCardsToHand();
+              const cardElement = this.cardsManager.chamberManager.getCardElement(selection[0]);
+              document.getElementById("placeChamber_button").classList.add("disabled");
 
-            const cardElement = selection.length ? this.cardsManager.chamberManager.getCardElement(selection[0]) : false;
-            this.dungeonsManager.placementMode(cardElement);
-            document.getElementById("placeChamber_button").classList.add("disabled");
+            } 
           };
 
           //highlights open dungeon slots
           let openSlots = args._private.slots;
           this.dungeonsManager.highlightOpenSlots(openSlots, document.getElementById("my_dungeon"));
+          this.dungeonsManager.placementMode(true);
         }
       },
 
@@ -284,7 +286,7 @@ define([
           openSlots = slotsToHighlight[cardId];
           this.cardsManager.makeSlotActionable(cardId, openSlots, true);
         }
-        debugger;
+        
         //add clickable to tokens in the active player staging area
         let tokens = document.querySelector("#my_token_staging").children;
 
@@ -386,20 +388,15 @@ define([
       },
 
       onPlaceChamberClicked: function (evt) {
-        const cardSelected = this.cardsManager.getSelectedChamber();
+        debugger;
+        const cardSelected = this.dungeonsManager.dungeon[this.player_id].getSelection()[0];
 
         if (!cardSelected) {
-          this.showMessage(_("You must select a Chamber card first, and a position in the Dungeon"), "only_to_log");
+          this.showMessage(_("You must place a Chamber card in your Dungeon first"), "only_to_log");
           return;
         }
-        const slot = cardSelected.parentElement.dataset.slotId;
-        const [type, id] = cardSelected.id.split("-");
-        const cardObj = {
-          card: id,
-          row: slot.charAt(0),
-          col: slot.charAt(1),
-        };
-        this.bgaPerformAction("placeChamberCard", cardObj);
+
+        this.bgaPerformAction("placeChamberCard", cardSelected);
       },
 
       onUndoPlaceChamberClicked: function (evt) {
@@ -523,7 +520,7 @@ define([
           this.notifqueue.setSynchronous(notif.name, notif.delay);
 
           if (notif.condition !== undefined) {
-            debugger;
+            
             if (!(methodNamePrivate in this) && methodName in this) {
               this[methodNamePrivate] = this[methodName];
             }
@@ -548,10 +545,9 @@ define([
         let card = notif.args.card;
         let cardElement = this.cardsManager.chamberManager.getCardElement(card);
 
-        this.dungeonsManager.dungeon[player_id].addCard(card, {}, {slot:position});
-
-        //remove any clickable from card placed
-        this.removeAllEvents(cardElement);
+        cardElement.classList.remove("placement");
+        let cardStock = this.cardsManager.chamberManager.getCardStock(card);
+        cardStock.setSelectionMode("none");
 
         //remove clickable from every open slot
         this.dungeonsManager.placementMode(false);
@@ -623,7 +619,7 @@ define([
       },
 
       notif_reveal_cards_placed: function (notif) {
-        debugger;
+        
         debug(`notification: ${notif.type}`, notif);
         let card = notif.args.card;
         let position = notif.args.position;

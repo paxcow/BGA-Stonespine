@@ -82,7 +82,7 @@ define([
 
       for (let i = 1; i < 5; i++) {
         let quadrantDiv = document.createElement("div");
-        quadrantDiv.classList.add("element-slot", "slot");
+        quadrantDiv.classList.add("element-slot","chamber-slot");
         quadrantDiv.id = "chamber-" + card.id + "_" + "element" + i;
         quadrantDiv.dataset.card = card.id;
         quadrantDiv.dataset.quadrant = i;
@@ -93,7 +93,7 @@ define([
         passageDiv.dataset.card = card.id;
         passageDiv.dataset.passage = direction[i - 1];
         passageDiv.dataset.direction = i < 2 ? "vertical" : "horizontal";
-        passageDiv.classList.add("passage-slot", "slot");
+        passageDiv.classList.add("passage-slot", "chamber-slot");
         div.appendChild(passageDiv);
       }
       let income = document.createElement("div");
@@ -352,7 +352,7 @@ define([
       let slotsNodeList = dungeon.querySelectorAll(`.actionable.${dungeon.dataset.selected}-slot`);
 
       //remove all clickable from every slot.
-      prevActiveSlots = document.querySelectorAll(".chamber-card .slot.actionable");
+      prevActiveSlots = document.querySelectorAll(".chamber-card .chamber-slot.actionable");
       for (prevActiveSlot of prevActiveSlots) {
         this.removeAllEvents(prevActiveSlot);
       }

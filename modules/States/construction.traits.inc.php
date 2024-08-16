@@ -138,7 +138,6 @@ trait Construction
         $dungeon = new \Classes\Dungeon($player_id);
         $handlers = ['state' => &$client_state, 'hand' => &$hand, 'dungeon' => &$dungeon];
 
-
         //reload pending actions to update volatile game situation
         \Helpers\ActionManager::reloadAllActions($player_id, $handlers);
 

@@ -40,6 +40,7 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", g_gamethemeurl + "modu
           gap: 0,
           slotsIds: slotIds,
           slotClasses: ["grid_element"],
+          mapCardToSlot: (card) => card.slot,
         });
         this.dungeon[player].setSelectionMode("none");
 
@@ -152,38 +153,55 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", g_gamethemeurl + "modu
       }
     },
 
-    placementMode: function (cardSelected) {
+    placementMode: function (activateSlots) {
       let slots = document.querySelectorAll(".open-slot");
 
-      if (cardSelected && slots) {
-
+      if (activateSlots && slots) {
         //add clickable to each open slot.
 
         let clickSlotToPlaceCard = function (event) {
-          // event.stopPropagation();
-          const toElement = event.currentTarget;
-          const fromElement = cardSelected.parentNode;
+          if (event.currentTarget.children.length > 0) return; //ignore click slot if there's already a card there
 
-         // this.game.removeAllEvents(cardElement);
+          let cardSelected = this.game.dungeonsManager.dungeon[this.game.player_id].getSelection()[0];
+          const inDungeon = cardSelected ? true : false;
+          if (!inDungeon) cardSelected = this.game.cardsManager.chamberHand[this.game.player_id].getSelection()[0];
+          if (!cardSelected) return;
 
-          //manually move the card (not using bga-cards)
-          if (!cardSelected || !toElement) {
-            console.log ("No card to move, or nowhere to move it to.");
-            return;
-          }          
-          this.game.cardsManager.moveCardNotStock(cardSelected,toElement);
+          const slotSelected = event.currentTarget.dataset.slotId;
 
-          //add clickable to card (since bga-cards select doesn't work outside the stock element)
+          cardSelected.slot = slotSelected;
+
+          const dungeon = this.game.dungeonsManager.dungeon[this.game.player_id];
+
+          if (!inDungeon) {
+            dungeon.addCard(cardSelected);
+          } else {
+            dungeon.swapCards([cardSelected]);
+          }
+          dungeon.setSelectionMode("none");
+          dungeon.setSelectionMode("single", [cardSelected]);
+          const cardElement = dungeon.getCardElement(cardSelected);
+          cardElement.classList.add("placement");
+          dungeon.onSelectionChange = (selection, lastChange) => {
+            if (selection.length == 0) {
+              card = lastChange;
+              this.game.dungeonsManager.returnCardToHand(dungeon.getCardElement(card));
+            }
+          };
+          //debugger;
+          dungeon.selectCard(cardSelected);
+
+          /*           const cardElement = this.manager.getCardElement(cardSelected);
+
           clickToUnselect = function (event) {
             event.stopPropagation();
             this.game.dungeonsManager.returnCardToHand(event.currentTarget, true);
           };
           clickToUnselect = clickToUnselect.bind(this);
-          this.game.addEvent(cardSelected, "click", clickToUnselect);
-
+          this.game.addEvent(cardElement, "click", clickToUnselect);
+ */
           //activate button
           document.getElementById("placeChamber_button").classList.remove("disabled");
-
         };
         clickSlotToPlaceCard = clickSlotToPlaceCard.bind(this);
         slots.forEach((slot) => {
@@ -195,26 +213,19 @@ define(["dojo", "dojo/_base/declare", "ebg/core/gamegui", g_gamethemeurl + "modu
         });
       }
     },
-    returnCardToHand: function (cardElement, deselect = false) {
+    returnCardToHand: function (cardElement) {
       //return card to hand
-      const toElement = document.querySelector("#my_chamber_hand");
-      if (!cardElement || !toElement) {
-        console.log ("No card to move, or nowhere to move it to.");
-        return;
-      }
-      this.game.cardsManager.moveCardNotStock(cardElement,toElement);
+      const card = this.game.cardsManager.chamberManager.getCard(cardElement.id);
+      if (card.hasOwnProperty("slot")) delete card.slot;
+      this.game.cardsManager.chamberHand[this.game.player_id].addCard(card);
+      cardElement.classList.remove("placement");
 
-      if (deselect) {
-        //deselect card
-        const card = this.game.cardsManager.chamberHand[this.game.player_id].getCard(cardElement.id);
-        this.game.cardsManager.chamberHand[this.game.player_id].unselectCard(card);
-      }
-      this.game.removeAllEvents(cardElement);
     },
     returnAllCardsToHand: function () {
-      cards = document.querySelector("#my_dungeon_wrapper").querySelectorAll(".chamber-card.actionable");
+      debugger;
+      cards = document.querySelector("#my_dungeon_wrapper").querySelectorAll(".chamber-card.placement");
       for (card of cards) {
-        this.returnCardToHand(card);
+        this.game.dungeonsManager.dungeon[this.game.player_id].unselectCard(card);
       }
     },
   });

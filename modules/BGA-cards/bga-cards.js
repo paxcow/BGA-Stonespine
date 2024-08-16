@@ -1799,6 +1799,14 @@ var CardManager = /** @class */ (function () {
         var _a, _b, _c;
         return (_c = (_b = (_a = this.settings).getId) === null || _b === void 0 ? void 0 : _b.call(_a, card)) !== null && _c !== void 0 ? _c : "card-".concat(card.id);
     };
+    CardManager.prototype.getCard = function (cardId){
+        let found = false;
+        this.stocks.forEach( (stock) => {
+            if (found) return;
+            found = stock.getCard(cardId);
+        })
+        return found;
+    };
     CardManager.prototype.createCardElement = function (card, visible) {
         var _a, _b, _c, _d, _e, _f;
         if (visible === void 0) { visible = true; }

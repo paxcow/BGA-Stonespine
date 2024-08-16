@@ -7,15 +7,11 @@ require_once(dirname(__FILE__, 2) . "/utilities.php");
 class Chamber extends \APP_DbObject
 {
     public $id;
-    public $top;
-    public $bottom;
-    public $left;
-    public $right;
-    public $quadrant;
     public $name;
     public $type;
     public $type_arg;
     public $gold;
+    public $quadrant;
     public $passage;
     public $door;
     public $direction;
@@ -40,7 +36,7 @@ class Chamber extends \APP_DbObject
         foreach($directions as $direction){
             $this->door[$direction] = $cardFromDB["door_$direction"];
             $this->passage[$direction] = $cardFromDB["passage_$direction"];
-            $this->direction = $this->door[$direction] || $this->passage[$direction];
+            $this->direction[$direction] = $this->door[$direction] || $this->passage[$direction];
         }
 
         $this->quadrant[1]  = $cardFromDB["element_1"];

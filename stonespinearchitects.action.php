@@ -67,9 +67,11 @@ class action_stonespinearchitects extends APP_GameAction
 
         // Retrieve arguments
         // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
-        $card = self::getArg("card", AT_posint, true);
-        $col = self::getArg("col", AT_posint, true);
-        $row = self::getArg("row", AT_posint, true);
+        $card = self::getArg("id", AT_posint, true);
+        $slot = self::getArg("slot", AT_alphanum, true);
+
+        $row = intval($slot[0]);
+        $col = intval($slot[1]);
 
 
         // Then, call the appropriate method in your game logic, like "playCard" or "myAction"

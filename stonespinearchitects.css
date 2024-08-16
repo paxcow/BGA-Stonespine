@@ -140,6 +140,7 @@ div {
   }
 }
 
+
 @keyframes highlight-actionable-token {
   0% {
     filter: drop-shadow(1px 1px 2px black) brightness(85%);
@@ -152,13 +153,13 @@ div {
   }
 }
 
-#my_chamber_hand > .actionable {
+/* #my_chamber_hand > .actionable {
   animation: highlight-actionable 2s infinite;
 }
 [data-selected] .actionable {
   animation: none;
   filter: brightness(40%);
-}
+} */
 
 /*********************************/
 /*        GAME AREAS             */
@@ -253,9 +254,13 @@ div {
   z-index: 99;
 }
 
-.bga-cards_selected-card.actionable {
+.card.actionable{
+  box-shadow: 0 0 0 3px goldenrod;
+  
+}
+.bga-cards_selected-card.actionable, .placement {
   box-shadow: 0 0 5px 3px blueviolet;
-  filter: brightness(100%);
+  filter: brightness(125%);
 }
 
 /*Chambers*/
@@ -377,7 +382,7 @@ div {
   border: 2px dashed white;
 }
 
-.slot {
+.chamber-slot {
   display: flex;
   box-sizing: border-box;
 }

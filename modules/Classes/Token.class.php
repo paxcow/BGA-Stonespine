@@ -127,7 +127,25 @@ class TokenManager extends \APP_DbObject
 
     }
 
+    public function calculatePointsForDungeon(\Classes\Dungeon $dungeon, $points)
+    {
+        // Get all chamber IDs from the dungeon
+        $chamber_ids = array_map(function($chamber) {
+            return $chamber->id;
+        }, $dungeon->getDungeon());
 
+        // Convert chamber_ids to a comma-separated string for SQL query
+        $chamber_ids_str = implode(",", $chamber_ids);
+
+        // Query to get unique token faces for the chambers in the dungeon
+        $sql = "SELECT DISTINCT token_face FROM token WHERE token_location_type = 'chamber' AND token_location IN ($chamber_ids_str)";
+        $unique_faces = $this->getObjectListFromDB($sql, true);
+
+        // Calculate total points
+        $total_points = count($unique_faces) * $points;
+
+        return $total_points;
+    }
 }
 
 class Token extends \APP_DbObject
