@@ -28,6 +28,5 @@ jobs:
           # Mirror command options
           localDir: '.'
           remoteDir: '/stonespinearchitects'
-          reverse: true
           ignoreFile: '.lftp_ignore'
           options: '--verbose'
